@@ -1,29 +1,29 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import './index.css'
-import { RouterProvider } from 'react-router-dom'
-import router from './routers/router'
-import { AuthProvider } from './context/AuthContext'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { RouterProvider } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import "./index.css";
+import router from "./routers/router";
+import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./components/ui/Toast";
+import { ConfirmProvider } from "./components/ui/ConfirmDialog";
 
-const initSanctum = async () => {
-  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-  const sanctumURL = baseURL.replace('/api', '/sanctum/csrf-cookie');
-  
-  try {
-    await fetch(sanctumURL, {
-      credentials: 'include',
-    });
-  } catch (error) {
-    console.warn('Failed to initialize sanctum:', error);
-  }
-};
-
-initSanctum().then(() => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </React.StrictMode>
-  );
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
+  },
 });
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <RouterProvider router={router} />
+          </ConfirmProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </React.StrictMode>
+);

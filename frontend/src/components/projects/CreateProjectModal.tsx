@@ -1,14 +1,11 @@
-import React, { useState } from "react";
-import API from "../../api/axios";
+import { useState } from "react";
+import { getErrorMessage } from "../../api/client";
+import { useCreateProject, useUpdateProject } from "../../hooks/useProjects";
+import type { Project } from "../../types";
 
 interface Props {
   onClose: () => void;
-  project?: {
-    id: number;
-    name: string;
-    description?: string;
-    background_url?: string;
-  };
+  project?: Pick<Project, "id" | "name" | "description" | "background_url">;
 }
 
 const predefinedImages = [
@@ -19,66 +16,36 @@ const predefinedImages = [
   { label: "Booked", url: "/img/undraw_booked_bb22.png" },
 ];
 
-const CreateProjectModal: React.FC<Props> = ({ onClose, project }) => {
+const CreateProjectModal = ({ onClose, project }: Props) => {
   const [name, setName] = useState(project?.name || "");
   const [description, setDescription] = useState(project?.description || "");
   const [collaboratorEmail, setCollaboratorEmail] = useState("");
   const [selectedImage, setSelectedImage] = useState(
     project?.background_url || predefinedImages[0].url
   );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+  const mutation = project ? updateProject : createProject;
+  const loading = mutation.isPending;
+  const error = mutation.isError ? getErrorMessage(mutation.error, "Có lỗi xảy ra khi lưu dự án.") : "";
 
   const handleSubmit = async () => {
-    setLoading(true);
-    setError("");
-    const payload = {
-      name,
-      description,
-      background_url: selectedImage,
-    };
-
+    const input = { name: name.trim(), description, background_url: selectedImage };
     try {
       if (project) {
-        await API.put(`/projects/${project.id}`, payload);
+        await updateProject.mutateAsync({ id: project.id, input });
       } else {
         const email = collaboratorEmail.trim();
-        await API.post("/projects", {
-          ...payload,
-          ...(email ? { collaborator_email: email } : {}),
-        });
+        await createProject.mutateAsync({ ...input, ...(email ? { collaborator_email: email } : {}) });
       }
-
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        window.location.reload();
-      }, 3000);
-    } catch (err: any) {
-      console.error("❌ Lỗi khi xử lý dự án:", err);
-      const errors = err.response?.data?.errors;
-      const firstError = errors ? (Object.values(errors)[0] as string[])?.[0] : undefined;
-      setError(firstError || err.response?.data?.message || "Có lỗi xảy ra khi lưu dự án.");
-    } finally {
-      setLoading(false);
+      onClose();
+    } catch {
+      // Lỗi đã được hiển thị qua mutation.error
     }
   };
 
   return (
     <>
-      {/* ✅ Alert góc phải */}
-      {showSuccess && (
-        <div className="fixed top-5 right-5 z-[1000]">
-          <div className="alert alert-success shadow-lg w-96">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{project ? "Dự án đã được cập nhật!" : "Dự án đã được tạo!"}</span>
-          </div>
-        </div>
-      )}
-
       {/* 🧱 Modal */}
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
         <div className="bg-base-100 rounded-lg p-6 w-96">

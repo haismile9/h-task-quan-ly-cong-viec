@@ -7,31 +7,22 @@ import {
   AiOutlinePushpin,
   AiOutlineFolder
 } from 'react-icons/ai';
-import API from '../api/axios';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    try {
-      await API.post('/logout');
-    } catch (error) {
-      console.error('Logout failed', error);
-    } finally {
-      logout(); // Sử dụng AuthContext logout
-      navigate('/login');
-    }
+    await logout();
+    navigate('/login');
   };
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
-  // Tạm thời dùng user giả, sau này có thể lấy từ AuthContext
-  const user = { name: 'User', role: 'member' };
-  const firstLetter = user.name?.charAt(0)?.toUpperCase() || 'U';
+  const firstLetter = user?.name?.charAt(0)?.toUpperCase() || 'U';
 
   return (
     <div className="menu p-4 w-64 min-h-screen bg-base-200 text-base-content flex flex-col">
@@ -49,8 +40,8 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
         <div>
-          <p className="font-semibold">{user.name}</p>
-          <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+          <p className="font-semibold">{user?.name}</p>
+          <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
         </div>
       </div>
 

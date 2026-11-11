@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Project } from '../../hooks/useDashboard';
+import type { DashboardProject as Project } from '../../types';
 
 interface ProjectCardProps {
   project: Project;

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import axios from "../api/axios";
+import { authApi } from "../api/auth";
+import { getErrorMessage, getFieldErrors } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "../components/AnimatedBackground";
 import AuthHeader from "../components/auth/AuthHeader";
@@ -19,28 +20,15 @@ const Register = () => {
       setErrors({});
       setGeneralError("");
       
-      await axios.get("/sanctum/csrf-cookie");
+      await authApi.register({ name, email, password, password_confirmation: passwordConfirmation });
 
-      await axios.post("/register", {
-        name,
-        email,
-        password,
-        password_confirmation: passwordConfirmation,
-      });
-
-      // ✅ Redirect sang verify, KHÔNG cần await response
-      navigate("/verify-email", {
-        state: { name, email, password, password_confirmation: passwordConfirmation }
-      });
-
-    } catch (err: any) {
-      if (err.response?.status === 422) {
-        // Validation errors
-        const validationErrors = err.response.data.errors || {};
-        setErrors(validationErrors);
-      } else {
-        // General error
-        setGeneralError(err.response?.data?.message || "Đăng ký thất bại");
+      // Backend đã lưu thông tin chờ xác minh; trang xác minh chỉ cần email.
+      navigate("/verify-email", { state: { email } });
+    } catch (err) {
+      const fieldErrors = getFieldErrors(err);
+      setErrors(fieldErrors);
+      if (!Object.keys(fieldErrors).length) {
+        setGeneralError(getErrorMessage(err, "Đăng ký thất bại"));
       }
     }
   };

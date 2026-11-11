@@ -1,45 +1,41 @@
 import { useState } from "react";
-import axios from "../../api/axios";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { authApi } from "../../api/auth";
+import { getErrorMessage } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
 const VerifyEmailForm = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
+  const { login } = useAuth();
+  const email: string | undefined = state?.email;
 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  if (!email) return <Navigate to="/register" replace />;
+
   const handleVerify = async () => {
     try {
-      const payload = {
-        name: state?.name,
-        email: state?.email,
-        password: state?.password,
-        password_confirmation: state?.password_confirmation,
-        code,
-      };
-
-      const res = await axios.post("/verify-email", payload);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      setSuccess("Xác minh thành công!");
       setError("");
-      navigate("/dashboard");
-    } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || "Xác minh thất bại.");
+      const { token, user } = await authApi.verifyEmail(email, code.trim());
+      await login(token, user);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setSuccess("");
+      setError(getErrorMessage(err, "Xác minh thất bại."));
     }
   };
 
   const handleResend = async () => {
     try {
-      await axios.post("/resend-code", { email: state?.email });
+      setError("");
+      await authApi.resendCode(email);
       setSuccess("Đã gửi lại mã xác minh.");
-    } catch (err: any) {
-      console.error(err);
-      setError("Không thể gửi lại mã.");
+    } catch (err) {
+      setSuccess("");
+      setError(getErrorMessage(err, "Không thể gửi lại mã."));
     }
   };
 
@@ -50,7 +46,7 @@ const VerifyEmailForm = () => {
           <h2 className="card-title">🔐 Xác minh Email</h2>
 
           <input
-            value={state?.email}
+            value={email}
             disabled
             className="input input-bordered mb-2 bg-gray-100"
           />

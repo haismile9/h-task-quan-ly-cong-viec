@@ -10,11 +10,12 @@ import { useDashboard } from '../hooks/useDashboard';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import ProjectCard from '../components/dashboard/ProjectCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { getErrorMessage } from '../api/client';
 
 const Dashboard: React.FC = () => {
-  const { data, loading, error, refetch } = useDashboard();
+  const { data, isLoading, error, refetch } = useDashboard();
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingSpinner message="Loading dashboard..." fullScreen />;
   }
 
@@ -23,10 +24,10 @@ const Dashboard: React.FC = () => {
       <div className="min-h-screen bg-base-200 flex items-center justify-center">
         <div className="alert alert-error max-w-md">
           <FaExclamationTriangle />
-          <span>{error}</span>
+          <span>{getErrorMessage(error, 'Không thể tải dashboard.')}</span>
           <button 
             className="btn btn-sm btn-outline ml-2" 
-            onClick={refetch}
+            onClick={() => refetch()}
           >
             Retry
           </button>

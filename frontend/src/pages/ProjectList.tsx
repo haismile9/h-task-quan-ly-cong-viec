@@ -1,69 +1,50 @@
-import { useState, useEffect } from "react";
-import { useProjects } from "../api/project/useProjects";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useDeleteProject, useProjects } from "../hooks/useProjects";
 import { accessControl } from "../api/utils/access";
-import API from "../api/axios";
+import { getErrorMessage } from "../api/client";
 import BoardCard from "../components/BoardCard";
 import NewBoardCard from "../components/NewBoardCard";
 import CreateProjectModal from "../components/projects/CreateProjectModal";
-import { Navigate, useLocation } from "react-router-dom";
+import { useConfirm } from "../components/ui/ConfirmDialog";
+import { useToast } from "../components/ui/Toast";
 
 const ProjectList = () => {
-  const rawUser = localStorage.getItem("user");
-  const user = rawUser ? JSON.parse(rawUser) : null;
+  const { user } = useAuth();
   const location = useLocation();
+  const { data: projects = [], isLoading, error } = useProjects();
+  const deleteProject = useDeleteProject();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [projectsState, setProjectsState] = useState<any[]>([]); // ← danh sách project cục bộ
-  const [notification, setNotification] = useState<string>("");
 
-  const { projects, loading, error } = useProjects();
-
-  // ⏬ Thêm đoạn này để đồng bộ dữ liệu từ useProjects sang state
+  // Thông báo truyền qua navigation state (vd. khi bị chuyển từ trang khác về)
   useEffect(() => {
-    if (projects) {
-      setProjectsState(projects);
-    }
-  }, [projects]);
+    if (!location.state?.message) return;
+    toast.warning(location.state.message);
+    window.history.replaceState({}, document.title);
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle notification message from navigation state
-  useEffect(() => {
-    if (location.state?.message) {
-      setNotification(location.state.message);
-      // Clear the notification after 5 seconds
-      setTimeout(() => {
-        setNotification("");
-      }, 5000);
-      
-      // Clear the state to prevent showing the message again on refresh
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
-
-  if (!user) return <Navigate to="/" />;
-
+  if (!user) return null;
   const permissions = accessControl(user.role);
 
-  const handleShowCreateModal = () => setShowCreateModal(true);
-  const handleCloseCreateModal = () => setShowCreateModal(false);
-
-  const handleDragStart = (id?: number) => {
-    if (id) setDraggingId(id);
-  };
-
   const handleDeleteProject = async (id: number) => {
-    const confirmed = window.confirm("Bạn có chắc muốn xoá dự án này?");
-    if (!confirmed) return;
-
+    const project = projects.find((p) => p.id === id);
+    const ok = await confirm({
+      title: "Xoá dự án",
+      message: `Bạn có chắc muốn xoá dự án "${project?.name ?? ""}"? Toàn bộ nhiệm vụ trong dự án sẽ bị xoá.`,
+      confirmText: "Xoá",
+      danger: true,
+    });
+    if (!ok) return;
     try {
-      await API.delete(`/projects/${id}`);
-
-      // ✅ Xoá khỏi projectState (không reload)
-      setProjectsState((prev) => prev.filter((p) => p.id !== id));
-      alert("Đã xoá dự án thành công!");
+      await deleteProject.mutateAsync(id);
+      toast.success("Đã xoá dự án");
     } catch (err) {
-      console.error("Delete project error:", err);
-      alert("Lỗi khi xoá dự án.");
+      toast.error(getErrorMessage(err, "Lỗi khi xoá dự án."));
     }
   };
 
@@ -76,25 +57,10 @@ const ProjectList = () => {
 
   return (
     <div className="p-6 bg-base-200 min-h-screen">
-      {/* Notification Toast */}
-      {notification && (
-        <div className="toast toast-top toast-center">
-          <div className="alert alert-warning">
-            <span>{notification}</span>
-          </div>
-        </div>
-      )}
-      
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Xin chào, {user.name}</h1>
-      
-        </div>
+        <h1 className="text-3xl font-bold">Xin chào, {user.name}</h1>
         {permissions.canManageProjects && (
-          <button
-            className="btn btn-success btn-sm"
-            onClick={handleShowCreateModal}
-          >
+          <button className="btn btn-success btn-sm" onClick={() => setShowCreateModal(true)}>
             + Tạo Dự Án
           </button>
         )}
@@ -102,29 +68,27 @@ const ProjectList = () => {
 
       <h2 className="text-2xl font-semibold mb-4">Danh sách dự án</h2>
 
-      {loading && <p>Đang tải dữ liệu...</p>}
-      {error && <p className="text-error">{error}</p>}
+      {isLoading && <p>Đang tải dữ liệu...</p>}
+      {error && <p className="text-error">{getErrorMessage(error, "Không thể tải dự án")}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <NewBoardCard onClick={handleShowCreateModal} />
-        {projectsState.map((project) => (
+        <NewBoardCard onClick={() => setShowCreateModal(true)} />
+        {projects.map((project) => (
           <BoardCard
             key={project.id}
             id={project.id}
             title={project.name}
             description={project.description || "Không có mô tả"}
-            backgroundUrl={project.background_url}
+            backgroundUrl={project.background_url ?? undefined}
             draggable
-            onDragStart={handleDragStart}
+            onDragStart={(id) => id && setDraggingId(id)}
           />
         ))}
       </div>
 
-      {showCreateModal && (
-        <CreateProjectModal onClose={handleCloseCreateModal} />
-      )}
+      {showCreateModal && <CreateProjectModal onClose={() => setShowCreateModal(false)} />}
 
-      {/* 🗑 Trash zone */}
+      {/* 🗑 Kéo thẻ dự án vào đây để xoá */}
       <div
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDropToTrash}

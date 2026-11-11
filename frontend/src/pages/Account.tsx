@@ -1,28 +1,19 @@
-import { useEffect, useState } from "react";
-import API from "../api/axios";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { authApi } from "../api/auth";
+import { getErrorMessage } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 const Account = () => {
-  const [user, setUser] = useState<{ id: number; name: string; email: string } | null>(null);
-  const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
+  const { user, setUser } = useAuth();
+  const [name, setName] = useState(user?.name ?? "");
 
-  useEffect(() => {
-    API.get("/account").then((res) => {
-      setUser(res.data);
-      setName(res.data.name);
-    });
-  }, []);
+  const updateProfile = useMutation({
+    mutationFn: () => authApi.updateProfile({ name: name.trim() }),
+    onSuccess: setUser,
+  });
 
-  const handleUpdate = async () => {
-    try {
-      await API.put("/account", { name });
-      setMessage("✅ Cập nhật thành công");
-    } catch (err) {
-      setMessage("❌ Có lỗi xảy ra");
-    }
-  };
-
-  if (!user) return <div>Đang tải...</div>;
+  if (!user) return null;
 
   return (
     <div className="p-6 bg-base-200 min-h-screen">
@@ -42,8 +33,15 @@ const Account = () => {
             className="input input-bordered w-full"
           />
         </div>
-        <button onClick={handleUpdate} className="btn btn-primary w-full">Cập nhật</button>
-        {message && <p className="text-sm text-info">{message}</p>}
+        <button
+          onClick={() => updateProfile.mutate()}
+          className="btn btn-primary w-full"
+          disabled={!name.trim() || updateProfile.isPending}
+        >
+          Cập nhật
+        </button>
+        {updateProfile.isSuccess && <p className="text-sm text-success">Cập nhật thành công</p>}
+        {updateProfile.isError && <p className="text-sm text-error">{getErrorMessage(updateProfile.error)}</p>}
       </div>
     </div>
   );

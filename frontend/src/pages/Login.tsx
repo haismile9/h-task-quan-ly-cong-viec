@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import API from "../api/axios";
+import { authApi } from "../api/auth";
+import { getErrorMessage, getFieldErrors } from "../api/client";
 import AnimatedBackground from "../components/AnimatedBackground";
 import AuthHeader from "../components/auth/AuthHeader";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../context/AuthContext";
 
 
 const Login = () => {
@@ -21,31 +22,17 @@ const Login = () => {
       setErrors({});
       setGeneralError("");
       
-      await API.get("/sanctum/csrf-cookie");
-      const res = await API.post("/login", { email, password });
-      console.log(res.data); // xem response có token ko?
+      const { token, user } = await authApi.login(email, password);
+      await login(token, user);
 
-      // Nếu có token, sử dụng AuthContext
-      if (res.data.token) {
-        login(res.data.token);
-        
-        // Redirect đến trang người dùng muốn truy cập trước khi bị redirect đến login
-        const from = location.state?.from?.pathname || "/dashboard";
-        navigate(from, { replace: true });
-      }
-    } catch (err: any) {
-      console.error("Login failed", err);
-      if (err.response?.status === 422) {
-        // Validation errors
-        const validationErrors = err.response.data.errors || {};
-        setErrors(validationErrors);
-        if (!Object.keys(validationErrors).length) {
-          // If no specific field errors, show general message
-          setGeneralError(err.response?.data?.message || "Email hoặc mật khẩu không chính xác");
-        }
-      } else {
-        // General error
-        setGeneralError(err.response?.data?.message || "Đăng nhập thất bại");
+      // Quay lại trang người dùng định vào trước khi bị chuyển tới /login
+      const from = location.state?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    } catch (err) {
+      const fieldErrors = getFieldErrors(err);
+      setErrors(fieldErrors);
+      if (!Object.keys(fieldErrors).length) {
+        setGeneralError(getErrorMessage(err, "Đăng nhập thất bại"));
       }
     }
   };
@@ -95,6 +82,12 @@ const Login = () => {
               </div>
             )}
           </div>
+
+          {location.state?.message && !generalError && (
+            <div className="alert alert-success mb-4">
+              <span>{location.state.message}</span>
+            </div>
+          )}
 
           {generalError && (
             <div className="alert alert-error mb-4 bg-red-50 border-red-200 text-red-700">

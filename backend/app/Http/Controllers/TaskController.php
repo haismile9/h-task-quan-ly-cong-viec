@@ -47,6 +47,7 @@ class TaskController extends Controller
         'title' => 'required|string|max:255',
         'description' => 'nullable|string',
         'status' => 'nullable|in:pending,in_progress,done',
+        'priority' => 'nullable|in:low,medium,high',
         'deadline' => 'nullable|date',
         'assigned_user_emails' => 'nullable|array',
         'assigned_user_emails.*' => 'email|exists:users,email',
@@ -91,6 +92,7 @@ class TaskController extends Controller
         'title' => $request->title,
         'description' => $request->description,
         'status' => $request->status ?? 'pending',
+        'priority' => $request->priority ?? 'medium',
         'deadline' => $request->deadline,
     ]);
 
@@ -141,6 +143,7 @@ class TaskController extends Controller
         'title' => 'nullable|string|max:255',
         'description' => 'nullable|string',
         'status' => 'nullable|in:pending,in_progress,done',
+        'priority' => 'nullable|in:low,medium,high',
         'deadline' => 'nullable|date',
         'assigned_user_emails' => 'nullable|array',
         'assigned_user_emails.*' => 'email|exists:users,email',
@@ -149,7 +152,7 @@ class TaskController extends Controller
     ]);
 
     // Cập nhật thông tin cơ bản
-    $task->update($request->only(['title', 'description', 'status', 'deadline']));
+    $task->update($request->only(['title', 'description', 'status', 'priority', 'deadline']));
 
     $assignedIds = [];
 
@@ -233,6 +236,9 @@ class TaskController extends Controller
             'title' => $task->title,
             'description' => $task->description,
             'status' => $task->status,
+            'priority' => $task->priority,
+            'deadline' => $task->deadline,
+            'project_id' => $task->project_id,
             'project_name' => $task->project->name ?? 'Không rõ',
         ]);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import { authApi } from "../api/auth";
+import { getErrorMessage, getFieldErrors } from "../api/client";
 import AnimatedBackground from "../components/AnimatedBackground";
 import AuthHeader from "../components/auth/AuthHeader";
 
@@ -37,19 +38,15 @@ const ForgotPassword = () => {
       setGeneralError("");
       setLoading(true);
       
-      await axios.get("/sanctum/csrf-cookie");
-      await axios.post("/password/reset/send-code", { email });
+      await authApi.sendResetCode(email);
       
       setStep(2);
       setTimeLeft(600); // Reset timer
       setCode(""); // Reset code
-    } catch (err: any) {
-      if (err.response?.status === 422) {
-        const validationErrors = err.response.data.errors || {};
-        setErrors(validationErrors);
-      } else {
-        setGeneralError(err.response?.data?.message || "Gửi mã thất bại");
-      }
+    } catch (err) {
+      const fieldErrors = getFieldErrors(err);
+      setErrors(fieldErrors);
+      if (!Object.keys(fieldErrors).length) setGeneralError(getErrorMessage(err, "Gửi mã thất bại"));
     } finally {
       setLoading(false);
     }
@@ -60,13 +57,13 @@ const ForgotPassword = () => {
       setGeneralError("");
       setLoading(true);
       
-      await axios.post("/password/reset/send-code", { email });
+      await authApi.sendResetCode(email);
       
       setTimeLeft(600); // Reset timer
       setCode(""); // Reset code
       setGeneralError("");
-    } catch (err: any) {
-      setGeneralError("Gửi lại mã thất bại");
+    } catch (err) {
+      setGeneralError(getErrorMessage(err, "Gửi lại mã thất bại"));
     } finally {
       setLoading(false);
     }
@@ -78,27 +75,11 @@ const ForgotPassword = () => {
       setGeneralError("");
       setLoading(true);
       
-      console.log('🔍 Verifying code:', { email, code }); // Debug log
-      
-      const response = await axios.post("/password/reset/verify-code", { email, code });
-      
-      console.log('✅ Verify success:', response.data); // Debug log
+      await authApi.verifyResetCode(email, code.trim());
       setStep(3);
-    } catch (err: any) {
-      console.error('❌ Verify error:', err.response?.data); // Debug log chi tiết
-      console.error('❌ Full error:', err); // Debug full error
-      
-      if (err.response?.status === 422) {
-        const errorData = err.response.data;
-        console.log('🚨 422 Error details:', errorData);
-        
-        if (errorData.errors) {
-          setErrors(errorData.errors);
-        }
-        setGeneralError(errorData.message || "Mã không hợp lệ hoặc đã hết hạn");
-      } else {
-        setGeneralError("Xác thực mã thất bại. Vui lòng thử lại.");
-      }
+    } catch (err) {
+      setErrors(getFieldErrors(err));
+      setGeneralError(getErrorMessage(err, "Mã không hợp lệ hoặc đã hết hạn"));
       // Không reset code khi lỗi để user có thể thử lại
     } finally {
       setLoading(false);
@@ -111,31 +92,20 @@ const ForgotPassword = () => {
       setGeneralError("");
       setLoading(true);
       
-      console.log('Resetting password:', { email, code, password: password ? '***' : '' }); // Debug log
-      
-      await axios.post("/password/reset", {
+      await authApi.resetPassword({
         email,
         code,
         password,
         password_confirmation: passwordConfirmation,
       });
-      
-      console.log('Reset success'); // Debug log
-      
-      alert("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
-      navigate("/");
-    } catch (err: any) {
-      console.error('Reset error:', err.response); // Debug log
-      
-      if (err.response?.status === 422) {
-        const validationErrors = err.response.data.errors || {};
-        setErrors(validationErrors);
-        if (!Object.keys(validationErrors).length) {
-          setGeneralError(err.response?.data?.message || "Đặt lại mật khẩu thất bại");
-        }
-      } else {
-        setGeneralError("Đặt lại mật khẩu thất bại");
-      }
+      navigate("/login", {
+        replace: true,
+        state: { message: "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới." },
+      });
+    } catch (err) {
+      const fieldErrors = getFieldErrors(err);
+      setErrors(fieldErrors);
+      if (!Object.keys(fieldErrors).length) setGeneralError(getErrorMessage(err, "Đặt lại mật khẩu thất bại"));
     } finally {
       setLoading(false);
     }
