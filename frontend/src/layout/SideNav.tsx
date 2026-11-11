@@ -38,7 +38,7 @@ const SideNav = () => {
             <nav className="space-y-0.5 max-h-[50vh] overflow-y-auto">
               {projects.map((p) => (
                 <NavLink key={p.id} to={`/projects/${p.id}`} className={itemClass}>
-                  <span className="w-6 h-5 rounded shrink-0" style={{ background: backgroundCss(p.background_url) }} />
+                  <span className="w-6 h-5 rounded shrink-0" style={{ background: backgroundCss(p.background_url, { thumb: true }) }} />
                   <span className="truncate">{p.name}</span>
                 </NavLink>
               ))}

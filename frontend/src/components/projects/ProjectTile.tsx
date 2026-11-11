@@ -15,7 +15,7 @@ const ProjectTile = ({ project }: { project: Project }) => {
         to={`/projects/${project.id}`}
         className="block rounded-lg overflow-hidden bg-base-100 shadow-[0_1px_1px_#091e4240,0_0_1px_#091e424f] hover:shadow-md transition"
       >
-        <div className="h-20 group-hover:brightness-90 transition" style={{ background: backgroundCss(project.background_url) }} />
+        <div className="h-20 group-hover:brightness-90 transition" style={{ background: backgroundCss(project.background_url, { thumb: true }) }} />
         <div className="px-3 py-2.5">
           <p className="text-sm truncate">{project.name}</p>
         </div>

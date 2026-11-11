@@ -13,6 +13,7 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\BackgroundController;
+use App\Http\Controllers\UnsplashController;
 
 
 // 🟢 Public routes (không cần đăng nhập)
@@ -103,6 +104,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // 🖼 Ảnh nền bảng do người dùng tải lên
     Route::get('/backgrounds', [BackgroundController::class, 'index']);
     Route::post('/backgrounds', [BackgroundController::class, 'store']);
+    Route::get('/unsplash/photos', [UnsplashController::class, 'photos']);
+    Route::post('/unsplash/download', [UnsplashController::class, 'trackDownload']);
 
     // 🕘 Nhật ký hoạt động
     Route::get('/activities/me', [ActivityController::class, 'mine']);

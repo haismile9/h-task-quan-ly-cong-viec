@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Kho ảnh nền bảng (https://unsplash.com/developers) — Access Key của ứng dụng Unsplash
+    'unsplash' => [
+        'access_key' => env('UNSPLASH_ACCESS_KEY'),
+        'app_name' => env('UNSPLASH_APP_NAME', 'h_task'),
+    ],
+
 ];

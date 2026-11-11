@@ -1,17 +1,14 @@
 /**
  * Nền của dự án, lưu trong cột `background_url`:
  *   - "gradient:<id>"      → một gradient màu bên dưới
- *   - URL ảnh (http/https) → ảnh người dùng tải lên, phủ kín
+ *   - URL ảnh (http/https) → ảnh Unsplash hoặc ảnh người dùng tải lên, phủ kín
  *   - "/img/undraw_..."    → ảnh minh hoạ cũ: quy về một gradient cố định cho đẹp
  */
 export const BOARD_GRADIENTS = [
   // Các id cũ giữ nguyên để dự án đã tạo không đổi màu
   { id: "blue", label: "Xanh dương", css: "linear-gradient(135deg, #0c66e4 0%, #1d7afc 55%, #579dff 100%)" },
-  { id: "ocean", label: "Đại dương", css: "linear-gradient(135deg, #0055cc 0%, #0c66e4 50%, #22a6d6 100%)" },
-  { id: "sky", label: "Bầu trời", css: "linear-gradient(135deg, #1d7afc 0%, #579dff 50%, #85b8ff 100%)" },
   { id: "navy", label: "Xanh đậm", css: "linear-gradient(135deg, #09326c 0%, #0055cc 60%, #1d7afc 100%)" },
   { id: "teal", label: "Ngọc lam", css: "linear-gradient(135deg, #0c66e4 0%, #1f9bb4 60%, #4bce97 100%)" },
-  { id: "indigo", label: "Chàm", css: "linear-gradient(135deg, #352c63 0%, #0c66e4 60%, #579dff 100%)" },
   // Màu mới
   { id: "purple", label: "Tím", css: "linear-gradient(135deg, #6e5dc6 0%, #9f8fef 100%)" },
   { id: "pink", label: "Hồng", css: "linear-gradient(135deg, #7f5fd8 0%, #e774bb 100%)" },
@@ -35,14 +32,21 @@ const hash = (s: string) => {
 export const isImageBackground = (value?: string | null): value is string =>
   !!value && /^https?:\/\//.test(value);
 
-/** CSS `background` cho một giá trị background_url. */
-export const backgroundCss = (value?: string | null): string => {
+/** Ảnh Unsplash nhỏ hơn cho ô thu nhỏ (ô dự án, sidebar, ô chọn nền). */
+const thumbUrl = (url: string) =>
+  url.includes("images.unsplash.com") ? url.replace(/([?&])w=\d+/, "$1w=400") : url;
+
+/** CSS `background` cho một giá trị background_url; `thumb` dùng ảnh nhỏ cho ô thu nhỏ. */
+export const backgroundCss = (value?: string | null, opts: { thumb?: boolean } = {}): string => {
   if (!value) return BOARD_GRADIENTS[0].css;
   if (value.startsWith("gradient:")) {
     const id = value.slice("gradient:".length);
     return (BOARD_GRADIENTS.find((g) => g.id === id) ?? BOARD_GRADIENTS[0]).css;
   }
-  if (isImageBackground(value)) return `#1d2125 url("${value}") center / cover no-repeat`;
+  if (isImageBackground(value)) {
+    const url = opts.thumb ? thumbUrl(value) : value;
+    return `#1d2125 url("${url}") center / cover no-repeat`;
+  }
   // Ảnh minh hoạ cũ: chọn cố định trong 6 gradient xanh ban đầu
   return BOARD_GRADIENTS[hash(value) % 6].css;
 };
