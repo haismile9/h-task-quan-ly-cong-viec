@@ -22,8 +22,11 @@ class SendEmailVerificationCode extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Mã xác nhận đăng ký QLCV')
-            ->line("Mã xác nhận của bạn là: {$this->code}")
-            ->line('Mã sẽ hết hạn sau 10 phút.');
+            ->subject('Mã xác minh email H-Task')
+            ->view('emails.code', [
+                'title' => 'Xác minh địa chỉ email',
+                'intro' => 'Nhập mã dưới đây trên H-Task để xác minh email của bạn.',
+                'code' => $this->code,
+            ]);
     }
 }

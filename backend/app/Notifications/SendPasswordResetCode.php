@@ -22,10 +22,11 @@ class SendPasswordResetCode extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Mã reset mật khẩu H-task')
-            ->line("Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.")
-            ->line("Mã reset mật khẩu của bạn là: {$this->code}")
-            ->line('Mã này sẽ hết hạn sau 10 phút.')
-            ->line('Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.');
+            ->subject('Mã đặt lại mật khẩu H-Task')
+            ->view('emails.code', [
+                'title' => 'Đặt lại mật khẩu',
+                'intro' => 'Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Nhập mã dưới đây để tiếp tục.',
+                'code' => $this->code,
+            ]);
     }
 }

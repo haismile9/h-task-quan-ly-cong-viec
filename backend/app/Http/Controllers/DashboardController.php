@@ -95,16 +95,18 @@ class DashboardController extends Controller
      */
     private function getTaskSummary($userId, $today)
     {
-        $tasks = Task::where('assigned_to', $userId);
-        
+        // Thẻ được gán qua bảng task_user (giữ cả cột cũ assigned_to cho dữ liệu cũ)
+        $tasks = Task::where(function ($q) use ($userId) {
+            $q->whereHas('assignedUsers', fn ($u) => $u->where('users.id', $userId))
+              ->orWhere('assigned_to', $userId);
+        })->get(['id', 'status', 'deadline']);
+
         return [
             'total' => $tasks->count(),
             'completed' => $tasks->where('status', 'done')->count(),
             'in_progress' => $tasks->where('status', 'in_progress')->count(),
             'pending' => $tasks->where('status', 'pending')->count(),
-            'overdue' => $tasks->where('status', '!=', 'done')
-                              ->where('deadline', '<', $today)
-                              ->count(),
+            'overdue' => $tasks->filter(fn ($t) => $t->status !== 'done' && $t->deadline && Carbon::parse($t->deadline)->lt($today))->count(),
         ];
     }
 
@@ -119,8 +121,9 @@ class DashboardController extends Controller
                    $project['task_summary']['total'] === $project['task_summary']['completed'];
         })->count();
         
+        // Đang chạy: còn thẻ chưa xong (trạng thái giờ chỉ là xong / chưa xong)
         $doingProjects = $projects->filter(function($project) {
-            return $project['task_summary']['in_progress'] > 0;
+            return $project['task_summary']['total'] > $project['task_summary']['completed'];
         })->count();
         
         $plannedProjects = $totalProjects - $doneProjects - $doingProjects;
