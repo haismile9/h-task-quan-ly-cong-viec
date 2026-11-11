@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\BackgroundController;
 
 
 // 🟢 Public routes (không cần đăng nhập)
@@ -98,6 +99,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/account', [AuthController::class, 'updateProfile']);
     Route::put('/account/password', [AuthController::class, 'changePassword']);
     Route::put('/account/settings', [AuthController::class, 'updateSettings']);
+
+    // 🖼 Ảnh nền bảng do người dùng tải lên
+    Route::get('/backgrounds', [BackgroundController::class, 'index']);
+    Route::post('/backgrounds', [BackgroundController::class, 'store']);
 
     // 🕘 Nhật ký hoạt động
     Route::get('/activities/me', [ActivityController::class, 'mine']);

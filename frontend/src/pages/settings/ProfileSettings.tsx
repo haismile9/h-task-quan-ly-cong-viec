@@ -1,19 +1,20 @@
 import { useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "../../api/auth";
-import { getErrorMessage, getFieldErrors } from "../../api/client";
+import { getErrorMessage } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import Avatar from "../../components/ui/Avatar";
 import FormField from "../../components/ui/FormField";
 import { useToast } from "../../components/ui/Toast";
-import { roleLabel } from "../../layout/TopNav";
+import { roleLabel } from "../../layout/AccountMenu";
+import ChangePasswordModal from "../../components/account/ChangePasswordModal";
 
 /** Hồ sơ và khả năng hiển thị: thông tin cá nhân + đổi mật khẩu. */
 const ProfileSettings = () => {
   const { user, setUser } = useAuth();
   const toast = useToast();
   const [name, setName] = useState(user?.name ?? "");
-  const [pw, setPw] = useState({ current_password: "", password: "", password_confirmation: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   const updateProfile = useMutation({
     mutationFn: () => authApi.updateProfile({ name: name.trim() }),
@@ -23,14 +24,6 @@ const ProfileSettings = () => {
     },
   });
 
-  const changePassword = useMutation({
-    mutationFn: () => authApi.changePassword(pw),
-    onSuccess: () => {
-      setPw({ current_password: "", password: "", password_confirmation: "" });
-      toast.success("Đã đổi mật khẩu. Các phiên đăng nhập khác đã bị đăng xuất.");
-    },
-  });
-  const pwErrors = getFieldErrors(changePassword.error);
 
   if (!user) return null;
 
@@ -38,10 +31,7 @@ const ProfileSettings = () => {
     e.preventDefault();
     updateProfile.mutate();
   };
-  const submitPassword = (e: FormEvent) => {
-    e.preventDefault();
-    changePassword.mutate();
-  };
+
 
   return (
     <>
@@ -77,43 +67,16 @@ const ProfileSettings = () => {
       </section>
 
       <section className="mb-10">
-        <h2 className="text-lg font-semibold border-b border-base-300 pb-2 mb-4">Đổi mật khẩu</h2>
-        <form onSubmit={submitPassword} className="space-y-4 max-w-md">
-          <FormField
-            label="Mật khẩu hiện tại"
-            type="password"
-            autoComplete="current-password"
-            value={pw.current_password}
-            onChange={(e) => setPw({ ...pw, current_password: e.target.value })}
-            errors={pwErrors.current_password}
-          />
-          <FormField
-            label="Mật khẩu mới"
-            type="password"
-            autoComplete="new-password"
-            placeholder="Ít nhất 8 ký tự"
-            value={pw.password}
-            onChange={(e) => setPw({ ...pw, password: e.target.value })}
-            errors={pwErrors.password}
-          />
-          <FormField
-            label="Xác nhận mật khẩu mới"
-            type="password"
-            autoComplete="new-password"
-            value={pw.password_confirmation}
-            onChange={(e) => setPw({ ...pw, password_confirmation: e.target.value })}
-          />
-          {changePassword.isError && !Object.keys(pwErrors).length && (
-            <p className="text-error text-sm">{getErrorMessage(changePassword.error)}</p>
-          )}
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={!pw.current_password || pw.password.length < 8 || changePassword.isPending}
-          >
+        <h2 className="text-lg font-semibold border-b border-base-300 pb-2 mb-4">Bảo mật</h2>
+        <div className="flex flex-wrap items-center gap-4 max-w-md">
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Mật khẩu</p>
+            <p className="text-base-content/60 tracking-widest">••••••••</p>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={() => setShowPassword(true)}>
             Đổi mật khẩu
           </button>
-        </form>
+        </div>
       </section>
 
       <section>
@@ -124,6 +87,7 @@ const ProfileSettings = () => {
           <li>Hoạt động của bạn chỉ hiển thị với thành viên của dự án nơi hoạt động diễn ra.</li>
         </ul>
       </section>
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
     </>
   );
 };

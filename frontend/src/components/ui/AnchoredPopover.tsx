@@ -67,6 +67,7 @@ const AnchoredPopover = ({ anchor, onClose, width = 288, label, className = "p-3
       ref={ref}
       role="dialog"
       aria-label={label}
+      data-popover=""
       className={`fixed z-[1100] bg-base-100 rounded-box shadow-xl border border-base-300 overflow-hidden ${className}`}
       style={{ width, top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
     >

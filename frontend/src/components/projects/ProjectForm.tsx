@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { AiOutlineCheck } from "react-icons/ai";
 import { useToast } from "../ui/Toast";
 import { getErrorMessage } from "../../api/client";
 import { useCreateProject, useUpdateProject } from "../../hooks/useProjects";
 import { projectsApi } from "../../api/projects";
-import { BOARD_GRADIENTS, DEFAULT_BACKGROUND, backgroundCss } from "../../utils/boardBackgrounds";
+import { DEFAULT_BACKGROUND, backgroundCss, isImageBackground } from "../../utils/boardBackgrounds";
+import BackgroundPicker from "./BackgroundPicker";
 import type { Project } from "../../types";
 
 interface ProjectFormProps {
@@ -17,8 +17,6 @@ interface ProjectFormProps {
   compact?: boolean;
 }
 
-const BACKGROUND_OPTIONS = BOARD_GRADIENTS.map((g) => ({ value: `gradient:${g.id}`, label: g.label }));
-
 /** Form tạo/sửa dự án: xem trước nền, chọn nền, tên, mô tả, cộng tác viên. */
 const ProjectForm = ({ project, onDone, onCancel, compact }: ProjectFormProps) => {
   const navigate = useNavigate();
@@ -27,7 +25,9 @@ const ProjectForm = ({ project, onDone, onCancel, compact }: ProjectFormProps) =
   const [description, setDescription] = useState(project?.description || "");
   const [collaboratorEmail, setCollaboratorEmail] = useState("");
   const [background, setBackground] = useState(
-    project?.background_url?.startsWith("gradient:") ? project.background_url : DEFAULT_BACKGROUND
+    project?.background_url?.startsWith("gradient:") || isImageBackground(project?.background_url)
+      ? project!.background_url!
+      : DEFAULT_BACKGROUND
   );
 
   const createProject = useCreateProject();
@@ -77,25 +77,7 @@ const ProjectForm = ({ project, onDone, onCancel, compact }: ProjectFormProps) =
         ))}
       </div>
 
-      <div>
-        <p className="text-xs font-semibold mb-1.5">Phông nền</p>
-        <div className="grid grid-cols-6 gap-1.5">
-          {BACKGROUND_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              title={opt.label}
-              aria-label={`Nền ${opt.label}`}
-              aria-pressed={background === opt.value}
-              onClick={() => setBackground(opt.value)}
-              className="h-8 rounded-md flex items-center justify-center text-white hover:opacity-90"
-              style={{ background: backgroundCss(opt.value) }}
-            >
-              {background === opt.value && <AiOutlineCheck />}
-            </button>
-          ))}
-        </div>
-      </div>
+      <BackgroundPicker value={background} onChange={setBackground} />
 
       <label className="flex flex-col gap-1 text-xs">
         <span className="font-semibold">

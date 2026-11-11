@@ -23,9 +23,13 @@ const TopNav = () => {
   useEffect(() => {
     if (!creating) return;
     const onClick = (e: MouseEvent) => {
-      if (!createRef.current?.contains(e.target as Node)) setCreating(false);
+      const t = e.target as HTMLElement;
+      // Popover con (vd. "Phông nền bảng") vẽ qua portal: bấm trong đó không tính là bấm ra ngoài
+      if (!createRef.current?.contains(t) && !t.closest("[data-popover]")) setCreating(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setCreating(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.querySelector("[data-popover]")) setCreating(false);
+    };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
     return () => {
