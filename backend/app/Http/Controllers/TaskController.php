@@ -59,13 +59,11 @@ class TaskController extends Controller
 
     // 🎯 Xử lý gán theo email
     if ($request->has('assigned_user_emails')) {
-        if (!($user->role === 'admin' || $project->owner_id === $user->id)) {
-            return response()->json(['message' => 'Bạn không có quyền gán người thực hiện'], 403);
-        }
+        // Như Trello: mọi thành viên dự án đều được gán người (người được gán phải thuộc dự án).
 
         $assignedUsers = User::whereIn('email', $request->assigned_user_emails)->get();
         foreach ($assignedUsers as $assignedUser) {
-            if (!$project->users()->where('user_id', $assignedUser->id)->exists()) {
+            if (!$this->isProjectMember($project, $assignedUser->id)) {
                 return response()->json(['message' => "User {$assignedUser->email} chưa tham gia dự án"], 403);
             }
             $assignedIds[] = $assignedUser->id;
@@ -74,12 +72,10 @@ class TaskController extends Controller
 
     // 🔥 Xử lý gán theo ID (ưu tiên nếu dùng frontend mới)
     if ($request->has('assigned_user_ids')) {
-        if (!($user->role === 'admin' || $project->owner_id === $user->id)) {
-            return response()->json(['message' => 'Bạn không có quyền gán người thực hiện'], 403);
-        }
+        // Như Trello: mọi thành viên dự án đều được gán người (người được gán phải thuộc dự án).
 
         foreach ($request->assigned_user_ids as $userId) {
-            if (!$project->users()->where('user_id', $userId)->exists()) {
+            if (!$this->isProjectMember($project, (int) $userId)) {
                 return response()->json(['message' => "User ID {$userId} chưa tham gia dự án"], 403);
             }
             $assignedIds[] = $userId;
@@ -158,13 +154,11 @@ class TaskController extends Controller
 
     // 🎯 Nếu có assigned_user_emails
     if ($request->has('assigned_user_emails')) {
-        if (!($user->role === 'admin' || $project->owner_id === $user->id)) {
-            return response()->json(['message' => 'Bạn không có quyền gán người thực hiện'], 403);
-        }
+        // Như Trello: mọi thành viên dự án đều được gán người (người được gán phải thuộc dự án).
 
         $assignedUsers = User::whereIn('email', $request->assigned_user_emails)->get();
         foreach ($assignedUsers as $assignedUser) {
-            if (!$project->users->contains('id', $assignedUser->id)) {
+            if (!$this->isProjectMember($project, $assignedUser->id)) {
                 return response()->json(['message' => "User {$assignedUser->email} chưa tham gia dự án"], 403);
             }
             $assignedIds[] = $assignedUser->id;
@@ -174,12 +168,10 @@ class TaskController extends Controller
 
     // 🔥 Nếu có assigned_user_ids
     if ($request->has('assigned_user_ids')) {
-        if (!($user->role === 'admin' || $project->owner_id === $user->id)) {
-            return response()->json(['message' => 'Bạn không có quyền gán người thực hiện'], 403);
-        }
+        // Như Trello: mọi thành viên dự án đều được gán người (người được gán phải thuộc dự án).
 
         foreach ($request->assigned_user_ids as $userId) {
-            if (!$project->users->contains('id', $userId)) {
+            if (!$this->isProjectMember($project, (int) $userId)) {
                 return response()->json(['message' => "User ID {$userId} chưa tham gia dự án"], 403);
             }
             $assignedIds[] = $userId;
@@ -345,4 +337,10 @@ class TaskController extends Controller
 
 
 
+
+    /** Thành viên dự án gồm người trong project_user và chủ dự án (dữ liệu cũ có thể thiếu chủ trong bảng). */
+    private function isProjectMember(Project $project, int $userId): bool
+    {
+        return $project->owner_id === $userId || $project->users->contains('id', $userId);
+    }
 }

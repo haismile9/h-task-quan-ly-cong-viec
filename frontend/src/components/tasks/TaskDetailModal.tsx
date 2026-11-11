@@ -8,12 +8,14 @@ import {
   AiOutlineComment,
   AiOutlineDown,
   AiOutlineEllipsis,
+  AiOutlinePlus,
   AiOutlineTag,
   AiOutlineUserAdd,
 } from "react-icons/ai";
 import { AiFillCheckCircle } from "react-icons/ai";
 import Avatar from "../ui/Avatar";
 import CommentSection from "../CommentSection";
+import MembersPopover from "./MembersPopover";
 import { useConfirm } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/Toast";
 import { getErrorMessage } from "../../api/client";
@@ -34,8 +36,6 @@ import {
 interface TaskDetailModalProps {
   task: Task;
   members: ProjectMember[];
-  /** Backend chỉ cho admin hoặc chủ dự án gán người thực hiện. */
-  canAssign: boolean;
   onClose: () => void;
 }
 
@@ -43,7 +43,7 @@ const popover = "dropdown-content z-50 w-72 mt-1 bg-base-100 rounded-box shadow-
 const chipBtn = "btn btn-sm bg-base-100 border-base-300 font-normal hover:bg-base-200";
 
 /** Chi tiết thẻ: trái là nội dung, phải là bình luận. Mọi thay đổi được lưu ngay. */
-const TaskDetailModal = ({ task, members, canAssign, onClose }: TaskDetailModalProps) => {
+const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
   const updateTask = useUpdateTask(task.project_id);
   const deleteTask = useDeleteTask(task.project_id);
   const toast = useToast();
@@ -53,6 +53,9 @@ const TaskDetailModal = ({ task, members, canAssign, onClose }: TaskDetailModalP
   const [editingDesc, setEditingDesc] = useState(false);
   const [description, setDescription] = useState(task.description ?? "");
   const [deadline, setDeadline] = useState(task.deadline?.slice(0, 10) ?? "");
+  /** Nút đang mở popover Thành viên (nút "Thành viên" hoặc nút ＋ cạnh avatar). */
+  const [membersAnchor, setMembersAnchor] = useState<HTMLElement | null>(null);
+  const toggleMembers = (el: HTMLElement) => setMembersAnchor((cur) => (cur === el ? null : el));
 
   // Đồng bộ khi dữ liệu thẻ thay đổi từ nơi khác (kéo thả, cập nhật...)
   useEffect(() => setTitle(task.title), [task.title]);
@@ -61,10 +64,14 @@ const TaskDetailModal = ({ task, members, canAssign, onClose }: TaskDetailModalP
   }, [task.description, editingDesc]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !editingDesc && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      // Popover tự xử lý Esc của nó; modal chỉ đóng khi không có popover mở
+      if (e.key !== "Escape" || editingDesc || membersAnchor) return;
+      onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, editingDesc]);
+  }, [onClose, editingDesc, membersAnchor]);
 
   const save = (input: TaskInput, success?: string) =>
     updateTask.mutate(
@@ -243,32 +250,13 @@ const TaskDetailModal = ({ task, members, canAssign, onClose }: TaskDetailModalP
                 </div>
               </div>
 
-              <div className="dropdown">
-                <button tabIndex={0} className={chipBtn} disabled={!canAssign} title={canAssign ? undefined : "Chỉ chủ dự án được giao việc"}>
-                  <AiOutlineUserAdd /> Thành viên
-                </button>
-                <div tabIndex={0} className={popover}>
-                  <p className="text-center text-sm font-semibold mb-2">Thành viên dự án</p>
-                  {members.length === 0 ? (
-                    <p className="text-sm text-base-content/60 text-center">Dự án chưa có thành viên.</p>
-                  ) : (
-                    <ul className="space-y-1 max-h-60 overflow-y-auto">
-                      {members.map((m) => (
-                        <li key={m.id}>
-                          <button
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-base-200 text-sm text-left"
-                            onClick={() => toggleAssignee(m.id)}
-                          >
-                            <Avatar name={m.name} size="xs" />
-                            <span className="flex-1 truncate">{m.name}</span>
-                            {assigneeIds.includes(m.id) && <span className="text-primary">✓</span>}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+              <button
+                className={`${chipBtn} ${membersAnchor ? "!bg-neutral !text-neutral-content" : ""}`}
+                onClick={(e) => toggleMembers(e.currentTarget)}
+                aria-expanded={!!membersAnchor}
+              >
+                <AiOutlineUserAdd /> Thành viên
+              </button>
             </div>
 
             {/* Giá trị hiện tại */}
@@ -291,15 +279,21 @@ const TaskDetailModal = ({ task, members, canAssign, onClose }: TaskDetailModalP
                   </span>
                 </Field>
               )}
-              {(task.assigned_users?.length ?? 0) > 0 && (
-                <Field label="Thành viên">
-                  <div className="flex -space-x-1.5">
-                    {task.assigned_users!.map((u) => (
-                      <Avatar key={u.id} name={u.name} size="sm" className="ring-2 ring-base-100" />
-                    ))}
-                  </div>
-                </Field>
-              )}
+              <Field label="Thành viên">
+                <div className="flex items-center gap-1">
+                  {task.assigned_users?.map((u) => (
+                    <Avatar key={u.id} name={u.name} size="md" className="!w-8 !h-8" />
+                  ))}
+                  <button
+                    className="w-8 h-8 rounded-full bg-base-200 hover:bg-base-300 flex items-center justify-center"
+                    onClick={(e) => toggleMembers(e.currentTarget)}
+                    aria-label="Thêm thành viên vào thẻ"
+                    title="Thêm thành viên"
+                  >
+                    <AiOutlinePlus />
+                  </button>
+                </div>
+              </Field>
             </div>
 
             {/* Mô tả */}
@@ -371,6 +365,15 @@ const TaskDetailModal = ({ task, members, canAssign, onClose }: TaskDetailModalP
         </div>
       </div>
       <div className="modal-backdrop bg-black/50" onClick={onClose} />
+      {membersAnchor && (
+        <MembersPopover
+          anchor={membersAnchor}
+          members={members}
+          assigneeIds={assigneeIds}
+          onToggle={toggleAssignee}
+          onClose={() => setMembersAnchor(null)}
+        />
+      )}
     </div>
   );
 };

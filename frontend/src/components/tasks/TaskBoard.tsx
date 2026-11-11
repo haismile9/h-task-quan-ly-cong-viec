@@ -73,11 +73,15 @@ const TaskBoard = ({ project }: { project: Project }) => {
     done: "default",
   });
 
-  const members = project.users ?? [];
+  // Thành viên bảng = người trong project_user + chủ dự án (dữ liệu cũ có thể thiếu chủ).
+  const members = useMemo(() => {
+    const list = project.users ?? [];
+    return project.owner && !list.some((u) => u.id === project.owner_id) ? [project.owner, ...list] : list;
+  }, [project.users, project.owner, project.owner_id]);
   // Thẻ đang mở lấy từ dữ liệu mới nhất, nên modal luôn hiển thị thay đổi vừa lưu
   const editingTask = modal?.type === "edit" ? tasks.find((t) => t.id === modal.taskId) : undefined;
   const pending = project.pending_invitations ?? [];
-  // Backend chỉ cho admin hoặc chủ dự án gán người, sửa và xoá dự án.
+  // Backend chỉ cho admin hoặc chủ dự án sửa/xoá dự án và mời người; mọi thành viên đều gán được việc.
   const isManager = user?.role === "admin" || user?.id === project.owner_id;
   const starred = isStarred(project.id);
   const filterCount = (filter.keyword ? 1 : 0) + (filter.onlyMine ? 1 : 0) + filter.priorities.length;
@@ -288,13 +292,13 @@ const TaskBoard = ({ project }: { project: Project }) => {
         <TaskFormModal
           projectId={project.id}
           members={members}
-          canAssign={isManager}
+          canAssign
           initialStatus={modal.status}
           onClose={() => setModal(null)}
         />
       )}
       {modal?.type === "edit" && editingTask && (
-        <TaskDetailModal task={editingTask} members={members} canAssign={isManager} onClose={() => setModal(null)} />
+        <TaskDetailModal task={editingTask} members={members} onClose={() => setModal(null)} />
       )}
       {modal?.type === "member" && <AddMemberModal project={project} canManage={isManager} onClose={() => setModal(null)} />}
       {modal?.type === "editProject" && <CreateProjectModal project={project} onClose={() => setModal(null)} />}
