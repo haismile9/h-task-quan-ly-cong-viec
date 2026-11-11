@@ -5,7 +5,6 @@ import {
   AiOutlineUser,
   AiOutlineLogout,
   AiOutlinePushpin,
-  AiOutlineSetting,
   AiOutlineFolder
 } from 'react-icons/ai';
 import API from '../api/axios';
@@ -99,17 +98,6 @@ const Sidebar: React.FC = () => {
           >
             <AiOutlineUser className="mr-2" />
             Tài Khoản
-          </Link>
-        </li>
-        <li>
-          <Link
-            to="/settings"
-            className={`flex items-center p-2 rounded hover:bg-base-300 transition ${
-              isActive('/settings') ? 'bg-base-300 font-bold' : ''
-            }`}
-          >
-            <AiOutlineSetting className="mr-2" />
-            Cài Đặt
           </Link>
         </li>
       </ul>
