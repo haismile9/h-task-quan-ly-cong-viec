@@ -11,6 +11,7 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import ForgotPassword from "../pages/ForgotPassword";
 import VerifyEmailForm from "../components/auth/VerifyEmailForm";
+import AcceptInvitation from "../pages/AcceptInvitation";
 
 const router = createBrowserRouter([
   // Không cần đăng nhập
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
   { path: "/register", element: <Register /> },
   { path: "/verify-email", element: <VerifyEmailForm /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/invite/:token", element: <AcceptInvitation /> },
   { path: "/404", element: <NotFound /> },
 
   // Cần đăng nhập

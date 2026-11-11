@@ -21,13 +21,14 @@ import CreateProjectModal from "../projects/CreateProjectModal";
 import type { Project, Task, TaskPriority, TaskStatus } from "../../types";
 import TaskColumn, { type ColumnSort } from "./TaskColumn";
 import TaskFormModal from "./TaskFormModal";
+import TaskDetailModal from "./TaskDetailModal";
 import { PRIORITIES, TASK_STATUSES, priorityColor, priorityLabel } from "./taskMeta";
 import { closeDropdown } from "../../utils/closeDropdown";
 
 /** Modal đang mở: thêm thẻ chi tiết, sửa thẻ, thêm thành viên, sửa dự án. */
 type OpenModal =
   | { type: "create"; status: TaskStatus }
-  | { type: "edit"; task: Task }
+  | { type: "edit"; taskId: number }
   | { type: "member" }
   | { type: "editProject" }
   | null;
@@ -73,6 +74,9 @@ const TaskBoard = ({ project }: { project: Project }) => {
   });
 
   const members = project.users ?? [];
+  // Thẻ đang mở lấy từ dữ liệu mới nhất, nên modal luôn hiển thị thay đổi vừa lưu
+  const editingTask = modal?.type === "edit" ? tasks.find((t) => t.id === modal.taskId) : undefined;
+  const pending = project.pending_invitations ?? [];
   // Backend chỉ cho admin hoặc chủ dự án gán người, sửa và xoá dự án.
   const isManager = user?.role === "admin" || user?.id === project.owner_id;
   const starred = isStarred(project.id);
@@ -132,16 +136,30 @@ const TaskBoard = ({ project }: { project: Project }) => {
         )}
         <div className="flex-1" />
 
-        <div className="flex -space-x-2 mr-1" aria-label="Thành viên dự án">
+        <button
+          className="flex -space-x-2 mr-1 rounded-full"
+          aria-label="Xem thành viên dự án"
+          onClick={() => setModal({ type: "member" })}
+        >
           {members.slice(0, 5).map((m) => (
             <Avatar key={m.id} name={m.name} size="sm" className="ring-2 ring-white/70" />
           ))}
-          {members.length > 5 && (
+          {/* Người được mời nhưng chưa đăng ký: avatar xám như Trello */}
+          {pending.slice(0, Math.max(0, 5 - members.length)).map((inv) => (
+            <span
+              key={`inv-${inv.id}`}
+              title={`${inv.email} – đang chờ đăng ký`}
+              className="w-8 h-8 rounded-full bg-base-300 text-base-content/70 text-xs font-semibold inline-flex items-center justify-center ring-2 ring-white/70 opacity-90"
+            >
+              {inv.email[0].toUpperCase()}
+            </span>
+          ))}
+          {members.length + pending.length > 5 && (
             <span className="w-8 h-8 rounded-full bg-white/30 text-xs font-semibold inline-flex items-center justify-center ring-2 ring-white/70">
-              +{members.length - 5}
+              +{members.length + pending.length - 5}
             </span>
           )}
-        </div>
+        </button>
 
         {/* Bộ lọc */}
         <div className="dropdown dropdown-end">
@@ -257,7 +275,7 @@ const TaskBoard = ({ project }: { project: Project }) => {
                   tasks={columns[status]}
                   sort={sorts[status]}
                   onSortChange={(s) => setSorts((prev) => ({ ...prev, [status]: s }))}
-                  onTaskClick={(task) => setModal({ type: "edit", task })}
+                  onTaskClick={(task) => setModal({ type: "edit", taskId: task.id })}
                   onOpenFullForm={(s) => setModal({ type: "create", status: s })}
                 />
               ))}
@@ -266,17 +284,19 @@ const TaskBoard = ({ project }: { project: Project }) => {
         )}
       </div>
 
-      {(modal?.type === "create" || modal?.type === "edit") && (
+      {modal?.type === "create" && (
         <TaskFormModal
           projectId={project.id}
           members={members}
           canAssign={isManager}
-          task={modal.type === "edit" ? modal.task : undefined}
-          initialStatus={modal.type === "create" ? modal.status : undefined}
+          initialStatus={modal.status}
           onClose={() => setModal(null)}
         />
       )}
-      {modal?.type === "member" && <AddMemberModal projectId={project.id} onClose={() => setModal(null)} />}
+      {modal?.type === "edit" && editingTask && (
+        <TaskDetailModal task={editingTask} members={members} canAssign={isManager} onClose={() => setModal(null)} />
+      )}
+      {modal?.type === "member" && <AddMemberModal project={project} canManage={isManager} onClose={() => setModal(null)} />}
       {modal?.type === "editProject" && <CreateProjectModal project={project} onClose={() => setModal(null)} />}
     </>
   );

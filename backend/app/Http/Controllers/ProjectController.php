@@ -7,6 +7,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\ProjectInvitation;
+use App\Mail\ProjectInvitationMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -85,7 +90,7 @@ class ProjectController extends Controller
      */
     public function show(string $id)
     {
-        $project = Project::with(['owner', 'users'])->find($id);
+        $project = Project::with(['owner', 'users', 'pendingInvitations:id,project_id,email,created_at'])->find($id);
 
         if (!$project) {
             return response()->json(['error' => 'Project not found'], 404);
@@ -167,30 +172,78 @@ class ProjectController extends Controller
             'total' => Project::count()
         ]);
     }
+    /**
+     * Thêm thành viên theo email.
+     * - Email đã có tài khoản → thêm ngay vào dự án.
+     * - Email chưa có tài khoản → tạo lời mời đang chờ và gửi mail; người đó vào dự án
+     *   ngay khi đăng ký bằng email này.
+     */
     public function addMember(Request $request, $id)
-{
-    $request->validate([
-        'email' => 'required|email|exists:users,email',
-    ]);
+    {
+        $request->validate(['email' => 'required|email'], [
+            'email.required' => 'Vui lòng nhập email',
+            'email.email' => 'Email không đúng định dạng',
+        ]);
 
-    $project = Project::findOrFail($id);
-    $currentUser = Auth::user();
+        $project = Project::findOrFail($id);
+        $currentUser = Auth::user();
 
-    // 🔒 Chỉ chủ sở hữu mới có quyền thêm thành viên
-    if ($currentUser->id !== $project->owner_id) {
-        return response()->json(['message' => 'Bạn không có quyền thêm thành viên'], 403);
+        // 🔒 Chỉ chủ dự án hoặc admin được mời thành viên
+        if ($currentUser->id !== $project->owner_id && $currentUser->role !== 'admin') {
+            return response()->json(['message' => 'Chỉ chủ dự án mới được mời thành viên'], 403);
+        }
+
+        $email = strtolower(trim($request->email));
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($user) {
+            if ($user->id === $project->owner_id || $project->users()->where('user_id', $user->id)->exists()) {
+                return response()->json(['message' => "{$user->name} đã là thành viên của dự án"], 422);
+            }
+            $project->users()->attach($user->id, ['role' => 'member']);
+
+            return response()->json(['status' => 'added', 'message' => "Đã thêm {$user->name} vào dự án"]);
+        }
+
+        // Chưa có tài khoản → lời mời đang chờ (gửi lại nếu đã mời trước đó)
+        $invitation = ProjectInvitation::firstOrNew(['project_id' => $project->id, 'email' => $email]);
+        if (!$invitation->exists || $invitation->accepted_at) {
+            $invitation->token = Str::random(48);
+            $invitation->accepted_at = null;
+        }
+        $invitation->invited_by = $currentUser->id;
+        $invitation->save();
+
+        $mailSent = true;
+        try {
+            Mail::to($email)->send(new ProjectInvitationMail($invitation->load('project', 'inviter')));
+        } catch (\Throwable $e) {
+            $mailSent = false;
+            Log::warning('Không gửi được mail mời dự án', ['email' => $email, 'error' => $e->getMessage()]);
+        }
+
+        return response()->json([
+            'status' => 'invited',
+            'mail_sent' => $mailSent,
+            'invite_url' => $invitation->url(),
+            'message' => $mailSent
+                ? "Đã gửi lời mời tới {$email}"
+                : "Đã tạo lời mời cho {$email} nhưng chưa gửi được email",
+        ], 201);
     }
 
-    $user = User::where('email', $request->email)->first();
+    /** Huỷ một lời mời đang chờ. */
+    public function cancelInvitation($id, $invitationId)
+    {
+        $project = Project::findOrFail($id);
+        $currentUser = Auth::user();
 
-    if ($project->users()->where('user_id', $user->id)->exists()) {
-        return response()->json(['message' => 'Người dùng đã là thành viên'], 200);
+        if ($currentUser->id !== $project->owner_id && $currentUser->role !== 'admin') {
+            return response()->json(['message' => 'Chỉ chủ dự án mới được huỷ lời mời'], 403);
+        }
+
+        $project->pendingInvitations()->whereKey($invitationId)->firstOrFail()->delete();
+
+        return response()->json(['message' => 'Đã huỷ lời mời']);
     }
-
-    $project->users()->attach($user->id, ['role' => 'member']);
-
-    return response()->json(['message' => 'Thành viên đã được thêm'], 200);
-}
-
-
 }

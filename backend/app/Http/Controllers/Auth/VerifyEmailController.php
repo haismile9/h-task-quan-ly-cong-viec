@@ -19,6 +19,7 @@ class VerifyEmailController extends Controller
 
     $record = EmailVerification::where('email', $request->email)
         ->where('code', $request->code)
+        ->where('type', 'email_verification') // không nhận mã đặt lại mật khẩu
         ->where('expires_at', '>', now())
         ->first();
 
@@ -26,12 +27,21 @@ class VerifyEmailController extends Controller
         return response()->json(['message' => 'Mã xác minh không đúng hoặc đã hết hạn'], 422);
     }
 
-    // ✅ Tạo user
+    if (User::where('email', $record->email)->exists()) {
+        $record->delete();
+        return response()->json(['message' => 'Email này đã được đăng ký, hãy đăng nhập'], 422);
+    }
+
+    // ✅ Tạo user từ thông tin đã lưu lúc đăng ký (mật khẩu đã được mã hoá sẵn)
     $user = User::create([
-    'name' => $request->name,
-    'email' => $request->email,
-    'password' => Hash::make($request->password),
-]);
+        'name' => $record->name,
+        'email' => $record->email,
+        'password' => $record->password,
+    ]);
+    $user->forceFill(['email_verified_at' => now()])->save();
+
+    // Nhận các lời mời vào dự án đang chờ cho email này
+    \App\Models\ProjectInvitation::acceptPendingFor($user);
 
     $token = $user->createToken('api-token')->plainTextToken;
 

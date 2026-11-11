@@ -1,11 +1,10 @@
 import client from "./client";
-import type { Project } from "../types";
+import type { AddMemberResult, Project } from "../types";
 
 export interface ProjectInput {
   name: string;
   description?: string;
   background_url?: string;
-  collaborator_email?: string;
 }
 
 export const projectsApi = {
@@ -15,10 +14,15 @@ export const projectsApi = {
 
   create: (input: ProjectInput) => client.post<Project>("/projects", input).then((r) => r.data),
 
-  update: (id: number, input: Omit<ProjectInput, "collaborator_email">) =>
+  update: (id: number, input: ProjectInput) =>
     client.put<Project>(`/projects/${id}`, input).then((r) => r.data),
 
   remove: (id: number) => client.delete(`/projects/${id}`),
 
-  addMember: (id: number, email: string) => client.post(`/projects/${id}/members`, { email }),
+  /** Thêm thành viên; email chưa có tài khoản sẽ nhận lời mời qua mail. */
+  addMember: (id: number, email: string) =>
+    client.post<AddMemberResult>(`/projects/${id}/members`, { email }).then((r) => r.data),
+
+  cancelInvitation: (id: number, invitationId: number) =>
+    client.delete(`/projects/${id}/invitations/${invitationId}`),
 };

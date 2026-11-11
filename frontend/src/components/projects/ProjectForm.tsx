@@ -4,6 +4,7 @@ import { AiOutlineCheck } from "react-icons/ai";
 import { useToast } from "../ui/Toast";
 import { getErrorMessage } from "../../api/client";
 import { useCreateProject, useUpdateProject } from "../../hooks/useProjects";
+import { projectsApi } from "../../api/projects";
 import { BOARD_GRADIENTS, DEFAULT_BACKGROUND, backgroundCss } from "../../utils/boardBackgrounds";
 import type { Project } from "../../types";
 
@@ -42,9 +43,16 @@ const ProjectForm = ({ project, onDone, onCancel, compact }: ProjectFormProps) =
         toast.success("Đã cập nhật dự án");
         onDone();
       } else {
-        const email = collaboratorEmail.trim();
-        const created = await createProject.mutateAsync({ ...input, ...(email ? { collaborator_email: email } : {}) });
+        const created = await createProject.mutateAsync(input);
         toast.success("Đã tạo dự án");
+        // Mời cộng tác viên qua cùng luồng với nút "Chia sẻ": email chưa có tài khoản sẽ nhận lời mời.
+        const email = collaboratorEmail.trim();
+        if (email) {
+          projectsApi
+            .addMember(created.id, email)
+            .then((r) => (r.status === "invited" && !r.mail_sent ? toast.warning(r.message) : toast.success(r.message)))
+            .catch((err) => toast.error(getErrorMessage(err, "Không mời được cộng tác viên.")));
+        }
         onDone();
         navigate(`/projects/${created.id}`);
       }

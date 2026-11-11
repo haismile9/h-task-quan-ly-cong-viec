@@ -4,6 +4,7 @@ import { authApi } from "../api/auth";
 import { getErrorMessage, getFieldErrors } from "../api/client";
 import AuthLayout from "../components/auth/AuthLayout";
 import FormField from "../components/ui/FormField";
+import OtpInput from "../components/ui/OtpInput";
 import type { FieldErrors } from "../types";
 
 const ForgotPassword = () => {
@@ -152,16 +153,7 @@ const ForgotPassword = () => {
       ),
       body: (
         <form onSubmit={submit(handleVerifyCode)} className="space-y-4">
-          <input
-            className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
-            placeholder="••••••"
-            inputMode="numeric"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            aria-label="Mã xác thực"
-            autoFocus
-          />
+          <OtpInput value={code} onChange={setCode} autoFocus invalid={!!generalError} />
           <p className="text-xs text-center text-base-content/60">
             {timeLeft > 0 ? (
               <>

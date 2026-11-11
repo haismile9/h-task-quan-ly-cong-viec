@@ -4,6 +4,7 @@ import { authApi } from "../../api/auth";
 import { getErrorMessage } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AuthLayout from "./AuthLayout";
+import OtpInput from "../ui/OtpInput";
 
 const VerifyEmailForm = () => {
   const navigate = useNavigate();
@@ -60,19 +61,10 @@ const VerifyEmailForm = () => {
       }
     >
       <form onSubmit={handleVerify} className="space-y-4">
-        <input
-          className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
-          placeholder="••••••"
-          inputMode="numeric"
-          maxLength={6}
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-          aria-label="Mã xác minh"
-          autoFocus
-        />
+        <OtpInput value={code} onChange={setCode} autoFocus invalid={!!error} />
         {error && <div className="alert alert-error text-sm">{error}</div>}
         {success && <div className="alert alert-success text-sm">{success}</div>}
-        <button type="submit" className="btn btn-primary w-full" disabled={loading || !code}>
+        <button type="submit" className="btn btn-primary w-full" disabled={loading || code.length !== 6}>
           {loading && <span className="loading loading-spinner loading-sm" />}
           Xác minh
         </button>

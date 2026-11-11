@@ -41,6 +41,12 @@ class Project extends Model
         return $this->belongsToMany(User::class)->withPivot('role')->withTimestamps();
     }
 
+    /** Lời mời gửi tới email chưa có tài khoản, chưa được nhận. */
+    public function pendingInvitations()
+    {
+        return $this->hasMany(ProjectInvitation::class)->whereNull('accepted_at')->latest();
+    }
+
     public function scopeWithOwner($query)
     {
         return $query->with('owner');

@@ -27,7 +27,7 @@ export const useCreateProject = () => {
 export const useUpdateProject = () => {
   const invalidate = useInvalidateProjects();
   return useMutation({
-    mutationFn: ({ id, input }: { id: number; input: Omit<ProjectInput, "collaborator_email"> }) =>
+    mutationFn: ({ id, input }: { id: number; input: ProjectInput }) =>
       projectsApi.update(id, input),
     onSuccess: invalidate,
   });
@@ -42,6 +42,14 @@ export const useAddProjectMember = (projectId: number) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (email: string) => projectsApi.addMember(projectId, email),
+    onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) }),
+  });
+};
+
+export const useCancelInvitation = (projectId: number) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (invitationId: number) => projectsApi.cancelInvitation(projectId, invitationId),
     onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) }),
   });
 };

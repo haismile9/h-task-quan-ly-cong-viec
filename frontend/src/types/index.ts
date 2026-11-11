@@ -30,6 +30,28 @@ export interface Project {
   updated_at: string;
   owner?: User;
   users?: ProjectMember[];
+  /** Lời mời gửi tới email chưa có tài khoản (chỉ có khi xem chi tiết dự án). */
+  pending_invitations?: PendingInvitation[];
+}
+
+export interface PendingInvitation {
+  id: number;
+  email: string;
+  created_at: string;
+}
+
+/** Kết quả POST /projects/{id}/members. */
+export type AddMemberResult =
+  | { status: "added"; message: string }
+  | { status: "invited"; message: string; mail_sent: boolean; invite_url: string };
+
+/** GET /invitations/{token} (công khai). */
+export interface InvitationInfo {
+  email: string;
+  accepted: boolean;
+  has_account: boolean;
+  project: { id: number; name: string; background_url: string | null };
+  inviter_name: string | null;
 }
 
 export type TaskStatus = "pending" | "in_progress" | "done";

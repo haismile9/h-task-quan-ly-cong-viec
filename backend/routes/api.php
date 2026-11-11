@@ -9,6 +9,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\InvitationController;
 
 
 // 🟢 Public routes (không cần đăng nhập)
@@ -19,6 +20,14 @@ Route::post('/login', [AuthController::class, 'login']);
 // 📤 Gửi và xác minh mã email (public - trước khi có token)
 Route::post('/verify-email', [VerifyEmailController::class, 'verify']);
 Route::post('/resend-code', [VerifyEmailController::class, 'resend']);
+
+// ✉️ Xem lời mời vào dự án (public - người được mời có thể chưa có tài khoản)
+Route::get('/invitations/{token}', [InvitationController::class, 'show']);
+Route::middleware('throttle:invitation')->group(function () {
+    Route::post('/invitations/{token}/send-code', [InvitationController::class, 'sendCode']);
+    Route::post('/invitations/{token}/verify-code', [InvitationController::class, 'verifyCode']);
+    Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept']);
+});
 
 // 🔐 Password reset routes (public)
 Route::post('/password/reset/send-code', [AuthController::class, 'sendPasswordResetCode']);
@@ -35,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/projects/{id}/members', [ProjectController::class, 'addMember']);
     Route::delete('/projects/{id}/members/{userId}', [ProjectController::class, 'removeMember']);
     Route::get('/projects/{id}/members', [ProjectController::class, 'getMembers']);
+    Route::delete('/projects/{id}/invitations/{invitationId}', [ProjectController::class, 'cancelInvitation']);
 
     // 📦 Task
     Route::get('/projects/{projectId}/tasks', [TaskController::class, 'index']);
