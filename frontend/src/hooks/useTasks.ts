@@ -49,6 +49,10 @@ export const useUpdateTask = (projectId: number) => {
     onError: (_err, _vars, context) => {
       if (context?.previous) qc.setQueryData(key, context.previous);
     },
+    // Dùng ngay bản thẻ server trả về (có assigned_users mới) trước khi tải lại cả danh sách
+    onSuccess: (saved) => {
+      qc.setQueryData<Task[]>(key, (tasks) => tasks?.map((t) => (t.id === saved.id ? { ...t, ...saved } : t)));
+    },
     onSettled: invalidate,
   });
 };

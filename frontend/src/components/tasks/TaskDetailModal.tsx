@@ -88,9 +88,17 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
     if (text !== task.title) save({ title: text });
   };
 
-  const assigneeIds = task.assigned_users?.map((u) => u.id) ?? [];
-  const toggleAssignee = (id: number) =>
-    save({ assigned_user_ids: assigneeIds.includes(id) ? assigneeIds.filter((x) => x !== id) : [...assigneeIds, id] });
+  // Giữ danh sách người được gán ở state riêng: bấm gán/gỡ liên tiếp không bị dùng dữ liệu cũ
+  const serverAssigneeKey = (task.assigned_users ?? []).map((u) => u.id).join(",");
+  const [assigneeIds, setAssigneeIds] = useState<number[]>(() => task.assigned_users?.map((u) => u.id) ?? []);
+  useEffect(() => {
+    if (!updateTask.isPending) setAssigneeIds(serverAssigneeKey ? serverAssigneeKey.split(",").map(Number) : []);
+  }, [serverAssigneeKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleAssignee = (id: number) => {
+    const next = assigneeIds.includes(id) ? assigneeIds.filter((x) => x !== id) : [...assigneeIds, id];
+    setAssigneeIds(next);
+    save({ assigned_user_ids: next });
+  };
 
   const isDone = task.status === "done";
   const deadlineInfo = deadlineState(task);
@@ -281,9 +289,11 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
               )}
               <Field label="Thành viên">
                 <div className="flex items-center gap-1">
-                  {task.assigned_users?.map((u) => (
-                    <Avatar key={u.id} name={u.name} size="md" className="!w-8 !h-8" />
-                  ))}
+                  {members
+                    .filter((m) => assigneeIds.includes(m.id))
+                    .map((u) => (
+                      <Avatar key={u.id} name={u.name} size="md" className="!w-8 !h-8" />
+                    ))}
                   <button
                     className="w-8 h-8 rounded-full bg-base-200 hover:bg-base-300 flex items-center justify-center"
                     onClick={(e) => toggleMembers(e.currentTarget)}
