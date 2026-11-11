@@ -9,7 +9,7 @@ import {
   AiOutlineUserAdd,
 } from "react-icons/ai";
 import { useBoard, useMoveTask, useReorderLists } from "../../hooks/useTasks";
-import { useDeleteProject } from "../../hooks/useProjects";
+import { useDeleteProject, useUpdateProject } from "../../hooks/useProjects";
 import { useStarredProjects } from "../../hooks/useStarredProjects";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../ui/Toast";
@@ -17,21 +17,19 @@ import { useConfirm } from "../ui/ConfirmDialog";
 import Avatar from "../ui/Avatar";
 import { getErrorMessage } from "../../api/client";
 import AddMemberModal from "../projects/AddMemberModal";
-import CreateProjectModal from "../projects/CreateProjectModal";
+import BoardMenu from "./BoardMenu";
 import type { Project, Task, TaskPriority } from "../../types";
 import TaskColumn from "./TaskColumn";
 import AddListComposer from "./AddListComposer";
 import TaskFormModal from "./TaskFormModal";
 import TaskDetailModal from "./TaskDetailModal";
 import { PRIORITIES, priorityColor, priorityLabel } from "./taskMeta";
-import { closeDropdown } from "../../utils/closeDropdown";
 
 /** Modal đang mở: thêm thẻ chi tiết, sửa thẻ, thêm thành viên, sửa dự án. */
 type OpenModal =
   | { type: "create"; listId: number }
   | { type: "edit"; taskId: number }
   | { type: "member" }
-  | { type: "editProject" }
   | null;
 
 interface BoardFilter {
@@ -58,6 +56,27 @@ const TaskBoard = ({ project }: { project: Project }) => {
   const navigate = useNavigate();
 
   const [modal, setModal] = useState<OpenModal>(null);
+  /** Nút ⋯ đang mở Menu của bảng (popup neo vào nút này). */
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const updateProject = useUpdateProject();
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(project.name);
+  useEffect(() => setName(project.name), [project.name]);
+
+  const saveName = () => {
+    setRenaming(false);
+    const text = name.trim();
+    if (!text || text === project.name) return setName(project.name);
+    updateProject.mutate(
+      { id: project.id, input: { name: text } },
+      {
+        onError: (err) => {
+          setName(project.name);
+          toast.error(getErrorMessage(err, "Không đổi được tên dự án."));
+        },
+      }
+    );
+  };
   const [params, setParams] = useSearchParams();
 
   // Mở thẻ từ link ?card=<id> (vd. bấm vào thẻ trong trang Hoạt động)
@@ -155,7 +174,35 @@ const TaskBoard = ({ project }: { project: Project }) => {
     <>
       {/* Thanh tiêu đề bảng */}
       <div className="flex flex-wrap items-center gap-1 px-3 py-2 bg-black/25 text-white backdrop-blur-sm">
-        <h1 className="text-lg font-bold truncate px-2">{project.name}</h1>
+        {renaming ? (
+          <input
+            className="input input-sm text-lg font-bold text-base-content w-auto min-w-40 max-w-md"
+            style={{ width: `${Math.max(name.length, 6) + 2}ch` }}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            onBlur={saveName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") {
+                setName(project.name);
+                setRenaming(false);
+              }
+            }}
+            autoFocus
+            aria-label="Tên dự án"
+          />
+        ) : isManager ? (
+          <h1
+            className="text-lg font-bold truncate px-2 py-0.5 rounded cursor-pointer hover:bg-white/20"
+            onClick={() => setRenaming(true)}
+            title="Bấm để đổi tên"
+          >
+            {name}
+          </h1>
+        ) : (
+          <h1 className="text-lg font-bold truncate px-2">{project.name}</h1>
+        )}
         {project.description && (
           <p className="hidden xl:block text-sm text-white/75 truncate max-w-sm">{project.description}</p>
         )}
@@ -253,30 +300,29 @@ const TaskBoard = ({ project }: { project: Project }) => {
           <AiOutlineUserAdd /> Chia sẻ
         </button>
 
-        <div className="dropdown dropdown-end">
-          <button tabIndex={0} className={headerBtn} aria-label="Thêm thao tác">
-            <AiOutlineEllipsis size={18} />
-          </button>
-          <ul tabIndex={0} className="dropdown-content menu z-40 w-60 mt-2 bg-base-100 text-base-content rounded-box shadow-xl border border-base-300 p-2">
-            <li className="menu-title">Dự án</li>
-            {isManager ? (
-              <>
-                <li>
-                  <button onClick={() => { closeDropdown(); setModal({ type: "editProject" }); }}>Sửa tên, mô tả, phông nền</button>
-                </li>
-                <li>
-                  <button className="text-error" onClick={() => { closeDropdown(); handleDeleteProject(); }}>
-                    Xoá dự án
-                  </button>
-                </li>
-              </>
-            ) : (
-              <li className="disabled">
-                <span>Chỉ chủ dự án được sửa hoặc xoá</span>
-              </li>
-            )}
-          </ul>
-        </div>
+        <button
+          className={`${headerBtn} ${menuAnchor ? "bg-white/25" : ""}`}
+          aria-label="Menu của bảng"
+          aria-expanded={!!menuAnchor}
+          onClick={(e) => {
+            const el = e.currentTarget;
+            setMenuAnchor((cur) => (cur ? null : el));
+          }}
+        >
+          <AiOutlineEllipsis size={18} />
+        </button>
+        {menuAnchor && (
+          <BoardMenu
+            project={project}
+            anchor={menuAnchor}
+            canManage={isManager}
+            starred={starred}
+            onToggleStar={() => toggleStar(project.id)}
+            onShare={() => setModal({ type: "member" })}
+            onDelete={handleDeleteProject}
+            onClose={() => setMenuAnchor(null)}
+          />
+        )}
       </div>
 
       {/* Các cột */}
@@ -337,7 +383,6 @@ const TaskBoard = ({ project }: { project: Project }) => {
         <TaskDetailModal task={editingTask} lists={lists} members={members} onClose={closeCard} />
       )}
       {modal?.type === "member" && <AddMemberModal project={project} canManage={isManager} onClose={() => setModal(null)} />}
-      {modal?.type === "editProject" && <CreateProjectModal project={project} onClose={() => setModal(null)} />}
     </>
   );
 };

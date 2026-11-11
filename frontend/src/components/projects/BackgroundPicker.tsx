@@ -64,14 +64,20 @@ const PhotoTile = ({ photo, selected, onPick, className }: { photo: PresetPhoto;
   </button>
 );
 
+interface BackgroundPopoverProps extends BackgroundPickerProps {
+  anchor: HTMLElement;
+  onClose: () => void;
+  /** Có → hiện nút quay lại ở màn hình chính (vd. về Menu của bảng). */
+  onBack?: () => void;
+}
+
 /**
- * Chọn phông nền như Trello: hàng chọn nhanh + nút ⋯ mở "Phông nền bảng"
- * (Ảnh, Màu sắc, tải ảnh của bạn). "Xem thêm" mở toàn bộ ảnh có sẵn kèm tìm kiếm.
+ * Popup "Phông nền bảng" (Ảnh, Màu sắc, tải ảnh của bạn); "Xem thêm" mở toàn bộ ảnh có sẵn kèm tìm kiếm.
+ * Dùng trong form dự án và trong Menu của bảng.
  */
-const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
+export const BackgroundPopover = ({ anchor, value, onChange, onClose, onBack }: BackgroundPopoverProps) => {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [view, setView] = useState<"main" | "photos">("main");
   const [allColors, setAllColors] = useState(false);
   const [search, setSearch] = useState("");
@@ -93,20 +99,7 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
     }
   };
 
-  // Hàng chọn nhanh: 3 ảnh + 2 màu, luôn kèm lựa chọn hiện tại
-  const quick: Array<{ value: string; css: string; label: string }> = [
-    ...PRESET_PHOTOS.slice(0, 3).map((p) => ({ value: p.url, css: `#ddd url("${p.thumb}") center / cover`, label: p.label })),
-    ...COLORS.map((c) => ({ value: c.value, css: backgroundCss(c.value), label: c.label })),
-  ].slice(0, 5);
-  if (!quick.some((q) => q.value === value)) {
-    quick[quick.length - 1] = { value, css: backgroundCss(value, { thumb: true }), label: "Đang chọn" };
-  }
-
-  const close = () => {
-    setAnchor(null);
-    setView("main");
-    setSearch("");
-  };
+  const close = onClose;
 
   const header = (title: React.ReactNode, onBack?: () => void) => (
     <div className="flex items-center mb-3">
@@ -125,38 +118,12 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
   );
 
   return (
-    <div>
-      <p className="text-xs font-semibold mb-1.5">Phông nền</p>
-      <div className="grid grid-cols-6 gap-1.5">
-        {quick.map((q) => (
-          <Swatch
-            key={q.value}
-            css={q.css}
-            label={q.label}
-            selected={q.value === value}
-            onClick={() => onChange(q.value)}
-          />
-        ))}
-        <button
-          type="button"
-          className="h-8 rounded-md bg-base-200 hover:bg-base-300 flex items-center justify-center"
-          onClick={(e) => {
-            const el = e.currentTarget;
-            setAnchor((cur) => (cur ? null : el));
-            setView("main");
-          }}
-          aria-label="Xem thêm phông nền"
-          aria-expanded={!!anchor}
-        >
-          <AiOutlineEllipsis />
-        </button>
-      </div>
-
+    <>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
 
-      {anchor && view === "main" && (
+      {view === "main" && (
         <AnchoredPopover anchor={anchor} onClose={close} width={320} label="Phông nền bảng">
-          {header("Phông nền bảng")}
+          {header("Phông nền bảng", onBack)}
 
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Ảnh</p>
@@ -217,7 +184,7 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
         </AnchoredPopover>
       )}
 
-      {anchor && view === "photos" && (
+      {view === "photos" && (
         <AnchoredPopover anchor={anchor} onClose={close} width={340} label="Ảnh">
           {header("Ảnh", () => setView("main"))}
           <label className="input input-bordered input-sm w-full flex items-center gap-2 mb-2">
@@ -266,6 +233,51 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
           </p>
         </AnchoredPopover>
       )}
+    </>
+  );
+};
+
+/** Chọn phông nền trong form dự án: hàng chọn nhanh + nút ⋯ mở popup "Phông nền bảng". */
+const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  // Hàng chọn nhanh: 3 ảnh + 2 màu, luôn kèm lựa chọn hiện tại
+  const quick: Array<{ value: string; css: string; label: string }> = [
+    ...PRESET_PHOTOS.slice(0, 3).map((p) => ({ value: p.url, css: `#ddd url("${p.thumb}") center / cover`, label: p.label })),
+    ...COLORS.map((c) => ({ value: c.value, css: backgroundCss(c.value), label: c.label })),
+  ].slice(0, 5);
+  if (!quick.some((q) => q.value === value)) {
+    quick[quick.length - 1] = { value, css: backgroundCss(value, { thumb: true }), label: "Đang chọn" };
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-1.5">Phông nền</p>
+      <div className="grid grid-cols-6 gap-1.5">
+        {quick.map((q) => (
+          <Swatch
+            key={q.value}
+            css={q.css}
+            label={q.label}
+            selected={q.value === value}
+            onClick={() => onChange(q.value)}
+          />
+        ))}
+        <button
+          type="button"
+          className="h-8 rounded-md bg-base-200 hover:bg-base-300 flex items-center justify-center"
+          onClick={(e) => {
+            const el = e.currentTarget;
+            setAnchor((cur) => (cur ? null : el));
+          }}
+          aria-label="Xem thêm phông nền"
+          aria-expanded={!!anchor}
+        >
+          <AiOutlineEllipsis />
+        </button>
+      </div>
+
+      {anchor && <BackgroundPopover anchor={anchor} value={value} onChange={onChange} onClose={() => setAnchor(null)} />}
     </div>
   );
 };

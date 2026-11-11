@@ -28,7 +28,7 @@ export const useCreateProject = () => {
 export const useUpdateProject = () => {
   const invalidate = useInvalidateProjects();
   return useMutation({
-    mutationFn: ({ id, input }: { id: number; input: ProjectInput }) =>
+    mutationFn: ({ id, input }: { id: number; input: Partial<ProjectInput> }) =>
       projectsApi.update(id, input),
     onSuccess: invalidate,
   });

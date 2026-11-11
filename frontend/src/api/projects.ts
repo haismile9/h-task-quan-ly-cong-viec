@@ -14,7 +14,7 @@ export const projectsApi = {
 
   create: (input: ProjectInput) => client.post<Project>("/projects", input).then((r) => r.data),
 
-  update: (id: number, input: ProjectInput) =>
+  update: (id: number, input: Partial<ProjectInput>) =>
     client.put<Project>(`/projects/${id}`, input).then((r) => r.data),
 
   remove: (id: number) => client.delete(`/projects/${id}`),
