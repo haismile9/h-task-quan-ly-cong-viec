@@ -22,6 +22,22 @@ class Project extends Model
 
     protected $with = ['owner'];
 
+    protected static function booted(): void
+    {
+        // Dự án mới có sẵn các danh sách mặc định, giống bảng Trello mới tạo.
+        static::created(function (Project $project) {
+            foreach (TaskList::DEFAULT_NAMES as $i => $name) {
+                $project->lists()->create(['name' => $name, 'position' => $i]);
+            }
+        });
+    }
+
+    /** Các danh sách (cột) của bảng, theo thứ tự hiển thị. */
+    public function lists()
+    {
+        return $this->hasMany(TaskList::class)->orderBy('position');
+    }
+
     protected $casts = [
         'created_at' => 'datetime:Y-m-d H:i',
         'updated_at' => 'datetime:Y-m-d H:i',

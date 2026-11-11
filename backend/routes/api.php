@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\ListController;
 
 
 // 🟢 Public routes (không cần đăng nhập)
@@ -51,6 +52,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/projects/{projectId}/tasks', [TaskController::class, 'store']);
     Route::get('/tasks/{id}', [TaskController::class, 'show']);
     Route::put('/tasks/{id}', [TaskController::class, 'update']);
+    Route::put('/tasks/{id}/move', [TaskController::class, 'move']);
+
+    // 🗂 Danh sách (cột) trên bảng
+    Route::get('/projects/{projectId}/lists', [ListController::class, 'index']);
+    Route::post('/projects/{projectId}/lists', [ListController::class, 'store']);
+    Route::put('/projects/{projectId}/lists/reorder', [ListController::class, 'reorder']);
+    Route::put('/lists/{id}', [ListController::class, 'update']);
+    Route::delete('/lists/{id}', [ListController::class, 'destroy']);
     Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
     Route::get('/my-tasks', [TaskController::class, 'myTasks']);
     

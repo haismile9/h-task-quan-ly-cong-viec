@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
+import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
 import {
   AiFillStar,
   AiOutlineEllipsis,
@@ -8,7 +8,7 @@ import {
   AiOutlineStar,
   AiOutlineUserAdd,
 } from "react-icons/ai";
-import { useProjectTasks, useUpdateTask } from "../../hooks/useTasks";
+import { useBoard, useMoveTask, useReorderLists } from "../../hooks/useTasks";
 import { useDeleteProject } from "../../hooks/useProjects";
 import { useStarredProjects } from "../../hooks/useStarredProjects";
 import { useAuth } from "../../context/AuthContext";
@@ -18,16 +18,17 @@ import Avatar from "../ui/Avatar";
 import { getErrorMessage } from "../../api/client";
 import AddMemberModal from "../projects/AddMemberModal";
 import CreateProjectModal from "../projects/CreateProjectModal";
-import type { Project, Task, TaskPriority, TaskStatus } from "../../types";
-import TaskColumn, { type ColumnSort } from "./TaskColumn";
+import type { Project, Task, TaskPriority } from "../../types";
+import TaskColumn from "./TaskColumn";
+import AddListComposer from "./AddListComposer";
 import TaskFormModal from "./TaskFormModal";
 import TaskDetailModal from "./TaskDetailModal";
-import { PRIORITIES, TASK_STATUSES, priorityColor, priorityLabel } from "./taskMeta";
+import { PRIORITIES, priorityColor, priorityLabel } from "./taskMeta";
 import { closeDropdown } from "../../utils/closeDropdown";
 
 /** Modal đang mở: thêm thẻ chi tiết, sửa thẻ, thêm thành viên, sửa dự án. */
 type OpenModal =
-  | { type: "create"; status: TaskStatus }
+  | { type: "create"; listId: number }
   | { type: "edit"; taskId: number }
   | { type: "member" }
   | { type: "editProject" }
@@ -40,24 +41,15 @@ interface BoardFilter {
 }
 
 const EMPTY_FILTER: BoardFilter = { keyword: "", onlyMine: false, priorities: [] };
-const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
-
-const sortTasks = (tasks: Task[], sort: ColumnSort) => {
-  if (sort === "deadline") {
-    return [...tasks].sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"));
-  }
-  if (sort === "priority") {
-    return [...tasks].sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
-  }
-  return tasks;
-};
-
 const headerBtn = "btn btn-ghost btn-sm btn-square text-white hover:bg-white/20 border-none";
 
 /** Bảng Kanban toàn màn hình: thanh tiêu đề bảng + các cột cuộn ngang. */
 const TaskBoard = ({ project }: { project: Project }) => {
-  const { data: tasks = [], isLoading, error } = useProjectTasks(project.id);
-  const updateTask = useUpdateTask(project.id);
+  const { data, isLoading, error } = useBoard(project.id);
+  const lists = useMemo(() => [...(data?.lists ?? [])].sort((a, b) => a.position - b.position), [data?.lists]);
+  const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
+  const moveTask = useMoveTask(project.id);
+  const reorderLists = useReorderLists(project.id);
   const deleteProject = useDeleteProject();
   const { isStarred, toggleStar } = useStarredProjects();
   const { user } = useAuth();
@@ -67,11 +59,6 @@ const TaskBoard = ({ project }: { project: Project }) => {
 
   const [modal, setModal] = useState<OpenModal>(null);
   const [filter, setFilter] = useState<BoardFilter>(EMPTY_FILTER);
-  const [sorts, setSorts] = useState<Record<TaskStatus, ColumnSort>>({
-    pending: "default",
-    in_progress: "default",
-    done: "default",
-  });
 
   // Thành viên bảng = người trong project_user + chủ dự án (dữ liệu cũ có thể thiếu chủ).
   const members = useMemo(() => {
@@ -86,25 +73,45 @@ const TaskBoard = ({ project }: { project: Project }) => {
   const starred = isStarred(project.id);
   const filterCount = (filter.keyword ? 1 : 0) + (filter.onlyMine ? 1 : 0) + filter.priorities.length;
 
-  const columns = useMemo(() => {
+  const isVisible = (t: Task) => {
     const keyword = filter.keyword.trim().toLowerCase();
-    const visible = tasks.filter(
-      (t) =>
-        (!keyword || t.title.toLowerCase().includes(keyword) || t.description?.toLowerCase().includes(keyword)) &&
-        (!filter.onlyMine || t.assigned_users?.some((u) => u.id === user?.id)) &&
-        (filter.priorities.length === 0 || filter.priorities.includes(t.priority))
+    return (
+      (!keyword || t.title.toLowerCase().includes(keyword) || !!t.description?.toLowerCase().includes(keyword)) &&
+      (!filter.onlyMine || !!t.assigned_users?.some((u) => u.id === user?.id)) &&
+      (filter.priorities.length === 0 || filter.priorities.includes(t.priority))
     );
-    const grouped: Record<TaskStatus, Task[]> = { pending: [], in_progress: [], done: [] };
-    visible.forEach((t) => grouped[t.status]?.push(t));
-    TASK_STATUSES.forEach((s) => (grouped[s] = sortTasks(grouped[s], sorts[s])));
-    return grouped;
-  }, [tasks, filter, sorts, user?.id]);
+  };
 
-  const onDragEnd = ({ source, destination, draggableId }: DropResult) => {
-    if (!destination || destination.droppableId === source.droppableId) return;
-    updateTask.mutate(
-      { id: Number(draggableId), input: { status: destination.droppableId as TaskStatus } },
-      { onError: (err) => toast.error(getErrorMessage(err, "Không thể cập nhật trạng thái.")) }
+  /** Thẻ theo từng danh sách, đúng thứ tự đã lưu. */
+  const byList = useMemo(() => {
+    const map = new Map<number, Task[]>();
+    lists.forEach((l) => map.set(l.id, []));
+    [...tasks].sort((a, b) => a.position - b.position).forEach((t) => map.get(t.list_id)?.push(t));
+    return map;
+  }, [lists, tasks]);
+
+  const onDragEnd = ({ source, destination, draggableId, type }: DropResult) => {
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    if (type === "LIST") {
+      const ids = lists.map((l) => l.id);
+      const [moved] = ids.splice(source.index, 1);
+      ids.splice(destination.index, 0, moved);
+      reorderLists.mutate(ids, { onError: (err) => toast.error(getErrorMessage(err, "Không sắp xếp được danh sách.")) });
+      return;
+    }
+
+    const taskId = Number(draggableId.replace("task-", ""));
+    const listId = Number(destination.droppableId.replace("list-", ""));
+    // Khi đang lọc, vị trí kéo thả là vị trí trong danh sách đang hiển thị: quy đổi về vị trí thật.
+    const full = (byList.get(listId) ?? []).filter((t) => t.id !== taskId);
+    const shown = full.filter(isVisible);
+    const anchor = shown[destination.index];
+    const index = anchor ? full.indexOf(anchor) : shown.length ? full.indexOf(shown[shown.length - 1]) + 1 : full.length;
+    moveTask.mutate(
+      { id: taskId, listId, index },
+      { onError: (err) => toast.error(getErrorMessage(err, "Không di chuyển được thẻ.")) }
     );
   };
 
@@ -271,18 +278,32 @@ const TaskBoard = ({ project }: { project: Project }) => {
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
             <div className="h-full flex items-start gap-3 p-3">
-              {TASK_STATUSES.map((status) => (
-                <TaskColumn
-                  key={status}
-                  projectId={project.id}
-                  status={status}
-                  tasks={columns[status]}
-                  sort={sorts[status]}
-                  onSortChange={(s) => setSorts((prev) => ({ ...prev, [status]: s }))}
-                  onTaskClick={(task) => setModal({ type: "edit", taskId: task.id })}
-                  onOpenFullForm={(s) => setModal({ type: "create", status: s })}
-                />
-              ))}
+              <Droppable droppableId="board" direction="horizontal" type="LIST">
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="h-full flex items-start">
+                    {lists.map((list, index) => (
+                      <Draggable key={list.id} draggableId={`list-${list.id}`} index={index}>
+                        {(drag) => (
+                          <div ref={drag.innerRef} {...drag.draggableProps} className="h-full mr-3 flex items-start">
+                            <TaskColumn
+                              projectId={project.id}
+                              list={list}
+                              tasks={(byList.get(list.id) ?? []).filter(isVisible)}
+                              totalCount={byList.get(list.id)?.length ?? 0}
+                              dragHandleProps={drag.dragHandleProps}
+                              canDelete={lists.length > 1}
+                              onTaskClick={(task) => setModal({ type: "edit", taskId: task.id })}
+                              onOpenFullForm={(listId) => setModal({ type: "create", listId })}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+              <AddListComposer projectId={project.id} />
             </div>
           </DragDropContext>
         )}
@@ -293,12 +314,13 @@ const TaskBoard = ({ project }: { project: Project }) => {
           projectId={project.id}
           members={members}
           canAssign
-          initialStatus={modal.status}
+          lists={lists}
+          initialListId={modal.listId}
           onClose={() => setModal(null)}
         />
       )}
       {modal?.type === "edit" && editingTask && (
-        <TaskDetailModal task={editingTask} members={members} onClose={() => setModal(null)} />
+        <TaskDetailModal task={editingTask} lists={lists} members={members} onClose={() => setModal(null)} />
       )}
       {modal?.type === "member" && <AddMemberModal project={project} canManage={isManager} onClose={() => setModal(null)} />}
       {modal?.type === "editProject" && <CreateProjectModal project={project} onClose={() => setModal(null)} />}

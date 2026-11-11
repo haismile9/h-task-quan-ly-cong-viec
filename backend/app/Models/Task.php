@@ -11,6 +11,8 @@ class Task extends Model
 
     protected $fillable = [
         'project_id',
+        'list_id',
+        'position',
         'title',
         'description',
         'status',
@@ -18,6 +20,14 @@ class Task extends Model
         'deadline',
         'assigned_to',
     ];
+
+    protected $casts = ['position' => 'integer', 'list_id' => 'integer'];
+
+    // Quan hệ: Task thuộc về một danh sách (cột) trên bảng
+    public function list()
+    {
+        return $this->belongsTo(TaskList::class, 'list_id');
+    }
 
     // Quan hệ: Task thuộc về một project
     public function project()

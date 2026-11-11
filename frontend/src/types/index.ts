@@ -54,12 +54,30 @@ export interface InvitationInfo {
   inviter_name: string | null;
 }
 
+/** Như Trello: "done" = đã xong; "pending"/"in_progress" (dữ liệu cũ) đều là chưa xong. */
 export type TaskStatus = "pending" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
+
+/** Danh sách (cột) trên bảng. */
+export interface TaskList {
+  id: number;
+  project_id: number;
+  name: string;
+  position: number;
+}
+
+/** Dữ liệu bảng: các cột và các thẻ (GET /projects/{id}/tasks). */
+export interface BoardData {
+  lists: TaskList[];
+  tasks: Task[];
+}
 
 export interface Task {
   id: number;
   project_id: number;
+  /** Danh sách chứa thẻ và vị trí trong danh sách (0 = trên cùng). */
+  list_id: number;
+  position: number;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -80,6 +98,7 @@ export interface MyTask {
   deadline: string | null;
   project_id: number;
   project_name: string;
+  list_name: string | null;
 }
 
 export interface Comment {

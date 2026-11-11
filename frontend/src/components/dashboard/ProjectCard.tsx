@@ -9,8 +9,7 @@ const ProjectCard = ({ project }: { project: DashboardProject }) => {
 
   const stats = [
     { label: "Hoàn thành", value: completed, className: "text-success" },
-    { label: "Đang làm", value: in_progress, className: "text-info" },
-    { label: "Chờ làm", value: pending, className: "text-base-content/70" },
+    { label: "Chưa xong", value: pending + in_progress, className: "text-info" },
     { label: "Quá hạn", value: overdue, className: "text-error" },
   ];
 
@@ -36,7 +35,7 @@ const ProjectCard = ({ project }: { project: DashboardProject }) => {
 
       <progress className="progress progress-primary w-full h-2" value={percent} max={100} />
 
-      <div className="grid grid-cols-4 gap-2 text-xs mt-3 text-center">
+      <div className="grid grid-cols-3 gap-2 text-xs mt-3 text-center">
         {stats.map((s) => (
           <div key={s.label}>
             <p className={`font-semibold ${s.className}`}>{s.value}</p>

@@ -5,37 +5,38 @@ import { AiOutlineCheckSquare, AiOutlineClockCircle } from "react-icons/ai";
 import { useMyTasks } from "../hooks/useTasks";
 import Page from "../components/ui/Page";
 import EmptyState from "../components/ui/EmptyState";
-import { deadlineChipClass, deadlineState, priorityColor, priorityLabel, statusBadgeClass, statusLabel, TASK_STATUSES } from "../components/tasks/taskMeta";
-import type { TaskStatus } from "../types";
+import { deadlineChipClass, deadlineState, isDone, priorityColor, priorityLabel } from "../components/tasks/taskMeta";
 
-type Filter = TaskStatus | "all";
+type Filter = "all" | "open" | "done";
+const FILTER_LABEL: Record<Filter, string> = { all: "Tất cả", open: "Chưa xong", done: "Hoàn thành" };
+const matchFilter = (f: Filter, done: boolean) => f === "all" || (f === "done") === done;
 
 const MyTasks = () => {
   const { data: tasks = [], isLoading } = useMyTasks();
   const [filter, setFilter] = useState<Filter>("all");
 
   const visible = useMemo(() => {
-    const list = filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
+    const list = tasks.filter((t) => matchFilter(filter, isDone(t)));
     // Việc chưa xong, hạn gần nhất lên trước
     return [...list].sort((a, b) => {
-      if ((a.status === "done") !== (b.status === "done")) return a.status === "done" ? 1 : -1;
+      if (isDone(a) !== isDone(b)) return isDone(a) ? 1 : -1;
       return (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999");
     });
   }, [tasks, filter]);
 
-  const count = (s: Filter) => (s === "all" ? tasks.length : tasks.filter((t) => t.status === s).length);
+  const count = (f: Filter) => tasks.filter((t) => matchFilter(f, isDone(t))).length;
 
   return (
     <Page title="Công việc của tôi" subtitle="Các nhiệm vụ được giao cho bạn ở mọi dự án.">
       <div role="tablist" className="tabs tabs-box w-fit mb-4">
-        {(["all", ...TASK_STATUSES] as Filter[]).map((f) => (
+        {(["all", "open", "done"] as Filter[]).map((f) => (
           <button
             key={f}
             role="tab"
             className={`tab ${filter === f ? "tab-active" : ""}`}
             onClick={() => setFilter(f)}
           >
-            {f === "all" ? "Tất cả" : statusLabel[f]} ({count(f)})
+            {FILTER_LABEL[f]} ({count(f)})
           </button>
         ))}
       </div>
@@ -61,10 +62,13 @@ const MyTasks = () => {
                     title={`Độ ưu tiên: ${priorityLabel[task.priority]}`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium truncate ${task.status === "done" ? "line-through text-base-content/50" : ""}`}>
+                    <p className={`font-medium truncate ${isDone(task) ? "line-through text-base-content/50" : ""}`}>
                       {task.title}
                     </p>
-                    <p className="text-xs text-base-content/60 truncate">{task.project_name}</p>
+                    <p className="text-xs text-base-content/60 truncate">
+                      {task.project_name}
+                      {task.list_name && <> · {task.list_name}</>}
+                    </p>
                   </div>
                   {deadline && (
                     <span className={`hidden sm:inline-flex items-center gap-1 text-xs rounded px-1.5 py-0.5 ${deadlineChipClass[deadline]}`}>
@@ -72,7 +76,7 @@ const MyTasks = () => {
                       {dayjs(task.deadline).format("DD/MM/YYYY")}
                     </span>
                   )}
-                  <span className={`badge badge-sm ${statusBadgeClass[task.status]}`}>{statusLabel[task.status]}</span>
+                  {isDone(task) && <span className="badge badge-sm badge-success">Hoàn thành</span>}
                 </Link>
               </li>
             );

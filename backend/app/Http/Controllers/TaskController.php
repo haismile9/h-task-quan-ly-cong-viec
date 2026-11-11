@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
@@ -21,9 +22,11 @@ class TaskController extends Controller
 
         $tasks = Task::where('project_id', $projectId)
             ->with('assignedUsers:id,name,email')
+            ->orderBy('position')
             ->get();
 
         return response()->json([
+            'lists' => $project->lists()->get(),
             'tasks' => $tasks,
             'user' => [
                 'id' => $user->id,
@@ -47,6 +50,7 @@ class TaskController extends Controller
         'title' => 'required|string|max:255',
         'description' => 'nullable|string',
         'status' => 'nullable|in:pending,in_progress,done',
+        'list_id' => 'nullable|integer',
         'priority' => 'nullable|in:low,medium,high',
         'deadline' => 'nullable|date',
         'assigned_user_emails' => 'nullable|array',
@@ -82,9 +86,19 @@ class TaskController extends Controller
         }
     }
 
-    // ✏️ Tạo task
+    // Danh sách đích: danh sách gửi lên (phải thuộc dự án) hoặc danh sách đầu tiên
+    $list = $request->filled('list_id')
+        ? $project->lists()->whereKey($request->list_id)->first()
+        : $project->lists()->first();
+    if (!$list) {
+        return response()->json(['message' => 'Danh sách không tồn tại trong dự án'], 422);
+    }
+
+    // ✏️ Tạo task (thêm vào cuối danh sách)
     $task = Task::create([
         'project_id' => $projectId,
+        'list_id' => $list->id,
+        'position' => (int) Task::where('list_id', $list->id)->max('position') + 1,
         'title' => $request->title,
         'description' => $request->description,
         'status' => $request->status ?? 'pending',
@@ -196,8 +210,9 @@ class TaskController extends Controller
         $task = Task::with('project.users')->findOrFail($id);
         $project = $task->project;
 
-        if ($user->role !== 'admin' && $project->owner_id !== $user->id) {
-            return response()->json(['message' => 'Không có quyền xóa task này'], 403);
+        // Như Trello: mọi thành viên dự án đều xoá được thẻ
+        if ($user->role !== 'admin' && !$this->isProjectMember($project, $user->id)) {
+            return response()->json(['message' => 'Bạn không thuộc dự án này'], 403);
         }
 
         $task->delete();
@@ -221,7 +236,7 @@ class TaskController extends Controller
     public function myTasks(Request $request)
 {
     $tasks = $request->user()->tasksAssigned()
-        ->with('project:id,name') // Load tên project
+        ->with(['project:id,name', 'list:id,name']) // Load tên project và danh sách
         ->get()
         ->map(fn($task) => [
             'id' => $task->id,
@@ -232,6 +247,7 @@ class TaskController extends Controller
             'deadline' => $task->deadline,
             'project_id' => $task->project_id,
             'project_name' => $task->project->name ?? 'Không rõ',
+            'list_name' => $task->list->name ?? null,
         ]);
 
     return response()->json(['tasks' => $tasks]);
@@ -337,6 +353,51 @@ class TaskController extends Controller
 
 
 
+
+    /**
+     * Di chuyển thẻ tới danh sách $list_id ở vị trí $position (0 = đầu danh sách),
+     * đánh lại số thứ tự của danh sách cũ và danh sách mới.
+     */
+    public function move(Request $request, $id)
+    {
+        $data = $request->validate([
+            'list_id' => 'required|integer',
+            'position' => 'required|integer|min:0',
+        ]);
+
+        $user = Auth::user();
+        $task = Task::with('project.users')->findOrFail($id);
+        $project = $task->project;
+        if (!$this->isProjectMember($project, $user->id) && $user->role !== 'admin') {
+            return response()->json(['message' => 'Bạn không thuộc dự án này'], 403);
+        }
+        $target = $project->lists()->whereKey($data['list_id'])->first();
+        if (!$target) {
+            return response()->json(['message' => 'Danh sách không tồn tại trong dự án'], 422);
+        }
+
+        DB::transaction(function () use ($task, $target, $data) {
+            $oldListId = $task->list_id;
+
+            // Danh sách đích (không tính thẻ đang di chuyển), chèn thẻ vào vị trí mới
+            $ids = Task::where('list_id', $target->id)->where('id', '!=', $task->id)
+                ->orderBy('position')->pluck('id')->all();
+            array_splice($ids, min($data['position'], count($ids)), 0, [$task->id]);
+
+            $task->update(['list_id' => $target->id]);
+            foreach ($ids as $pos => $taskId) {
+                Task::whereKey($taskId)->update(['position' => $pos]);
+            }
+
+            // Đánh số lại danh sách cũ nếu thẻ rời đi
+            if ($oldListId && $oldListId !== $target->id) {
+                Task::where('list_id', $oldListId)->orderBy('position')->pluck('id')
+                    ->each(fn ($taskId, $pos) => Task::whereKey($taskId)->update(['position' => $pos]));
+            }
+        });
+
+        return response()->json($task->fresh()->load('assignedUsers:id,name,email'));
+    }
 
     /** Thành viên dự án gồm người trong project_user và chủ dự án (dữ liệu cũ có thể thiếu chủ trong bảng). */
     private function isProjectMember(Project $project, int $userId): bool

@@ -16,25 +16,26 @@ import { AiFillCheckCircle } from "react-icons/ai";
 import Avatar from "../ui/Avatar";
 import CommentSection from "../CommentSection";
 import MembersPopover from "./MembersPopover";
+import MemberProfilePopover from "./MemberProfilePopover";
 import { useConfirm } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/Toast";
 import { getErrorMessage } from "../../api/client";
-import { useDeleteTask, useUpdateTask } from "../../hooks/useTasks";
+import { useDeleteTask, useMoveTask, useUpdateTask } from "../../hooks/useTasks";
 import type { TaskInput } from "../../api/tasks";
-import type { ProjectMember, Task, TaskStatus } from "../../types";
+import type { ProjectMember, Task, TaskList } from "../../types";
 import { closeDropdown } from "../../utils/closeDropdown";
 import {
   PRIORITIES,
-  TASK_STATUSES,
   deadlineChipClass,
   deadlineState,
+  isDone as taskIsDone,
   priorityColor,
   priorityLabel,
-  statusLabel,
 } from "./taskMeta";
 
 interface TaskDetailModalProps {
   task: Task;
+  lists: TaskList[];
   members: ProjectMember[];
   onClose: () => void;
 }
@@ -43,9 +44,11 @@ const popover = "dropdown-content z-50 w-72 mt-1 bg-base-100 rounded-box shadow-
 const chipBtn = "btn btn-sm bg-base-100 border-base-300 font-normal hover:bg-base-200";
 
 /** Chi tiết thẻ: trái là nội dung, phải là bình luận. Mọi thay đổi được lưu ngay. */
-const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
+const TaskDetailModal = ({ task, lists, members, onClose }: TaskDetailModalProps) => {
   const updateTask = useUpdateTask(task.project_id);
   const deleteTask = useDeleteTask(task.project_id);
+  const moveTask = useMoveTask(task.project_id);
+  const currentList = lists.find((l) => l.id === task.list_id);
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -56,6 +59,8 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
   /** Nút đang mở popover Thành viên (nút "Thành viên" hoặc nút ＋ cạnh avatar). */
   const [membersAnchor, setMembersAnchor] = useState<HTMLElement | null>(null);
   const toggleMembers = (el: HTMLElement) => setMembersAnchor((cur) => (cur === el ? null : el));
+  /** Avatar đang mở thẻ hồ sơ (Xem hồ sơ / Gỡ bỏ khỏi thẻ). */
+  const [profile, setProfile] = useState<{ anchor: HTMLElement; member: ProjectMember } | null>(null);
 
   // Đồng bộ khi dữ liệu thẻ thay đổi từ nơi khác (kéo thả, cập nhật...)
   useEffect(() => setTitle(task.title), [task.title]);
@@ -66,12 +71,12 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // Popover tự xử lý Esc của nó; modal chỉ đóng khi không có popover mở
-      if (e.key !== "Escape" || editingDesc || membersAnchor) return;
+      if (e.key !== "Escape" || editingDesc || membersAnchor || profile) return;
       onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, editingDesc, membersAnchor]);
+  }, [onClose, editingDesc, membersAnchor, profile]);
 
   const save = (input: TaskInput, success?: string) =>
     updateTask.mutate(
@@ -100,7 +105,7 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
     save({ assigned_user_ids: next });
   };
 
-  const isDone = task.status === "done";
+  const isDone = taskIsDone(task);
   const deadlineInfo = deadlineState(task);
 
   const handleDelete = async () => {
@@ -128,20 +133,25 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
         <div className="flex items-center gap-2 px-4 py-3 border-b border-base-300">
           <div className="dropdown">
             <button tabIndex={0} className="btn btn-sm bg-base-200 border-none font-medium">
-              {statusLabel[task.status]} <AiOutlineDown size={12} />
+              {currentList?.name ?? "Danh sách"} <AiOutlineDown size={12} />
             </button>
-            <ul tabIndex={0} className="dropdown-content menu z-50 w-48 mt-1 bg-base-100 rounded-box shadow-xl border border-base-300 p-2">
-              <li className="menu-title">Chuyển tới cột</li>
-              {TASK_STATUSES.map((s) => (
-                <li key={s}>
+            <ul tabIndex={0} className="dropdown-content menu z-50 w-56 mt-1 bg-base-100 rounded-box shadow-xl border border-base-300 p-2">
+              <li className="menu-title">Chuyển tới danh sách</li>
+              {lists.map((l) => (
+                <li key={l.id}>
                   <button
-                    className={s === task.status ? "menu-active" : ""}
+                    className={l.id === task.list_id ? "menu-active" : ""}
                     onClick={() => {
                       closeDropdown();
-                      if (s !== task.status) save({ status: s as TaskStatus });
+                      if (l.id === task.list_id) return;
+                      // Vị trí rất lớn = cuối danh sách (backend và cache đều tự kẹp về độ dài thật)
+                      moveTask.mutate(
+                        { id: task.id, listId: l.id, index: Number.MAX_SAFE_INTEGER },
+                        { onError: (err) => toast.error(getErrorMessage(err, "Không chuyển được thẻ.")) }
+                      );
                     }}
                   >
-                    {statusLabel[s]}
+                    {l.name}
                   </button>
                 </li>
               ))}
@@ -171,7 +181,7 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
             <div className="flex items-start gap-3">
               <button
                 className={`mt-1.5 text-2xl shrink-0 transition ${isDone ? "text-success" : "text-base-content/40 hover:text-success"}`}
-                onClick={() => save({ status: isDone ? "in_progress" : "done" }, isDone ? undefined : "Đã đánh dấu hoàn thành")}
+                onClick={() => save({ status: isDone ? "pending" : "done" }, isDone ? undefined : "Đã đánh dấu hoàn thành")}
                 title={isDone ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
                 aria-pressed={isDone}
               >
@@ -292,7 +302,17 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
                   {members
                     .filter((m) => assigneeIds.includes(m.id))
                     .map((u) => (
-                      <Avatar key={u.id} name={u.name} size="md" className="!w-8 !h-8" />
+                      <button
+                        key={u.id}
+                        className="rounded-full hover:ring-2 hover:ring-primary"
+                        onClick={(e) => {
+                          const el = e.currentTarget;
+                          setProfile((cur) => (cur?.member.id === u.id ? null : { anchor: el, member: u }));
+                        }}
+                        aria-label={`Hồ sơ ${u.name}`}
+                      >
+                        <Avatar name={u.name} size="md" className="!w-8 !h-8" />
+                      </button>
                     ))}
                   <button
                     className="w-8 h-8 rounded-full bg-base-200 hover:bg-base-300 flex items-center justify-center"
@@ -375,6 +395,14 @@ const TaskDetailModal = ({ task, members, onClose }: TaskDetailModalProps) => {
         </div>
       </div>
       <div className="modal-backdrop bg-black/50" onClick={onClose} />
+      {profile && (
+        <MemberProfilePopover
+          anchor={profile.anchor}
+          member={profile.member}
+          onRemove={() => toggleAssignee(profile.member.id)}
+          onClose={() => setProfile(null)}
+        />
+      )}
       {membersAnchor && (
         <MembersPopover
           anchor={membersAnchor}

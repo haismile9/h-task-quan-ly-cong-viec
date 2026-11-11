@@ -4,28 +4,29 @@ import Avatar from "../ui/Avatar";
 import { useToast } from "../ui/Toast";
 import { getErrorMessage } from "../../api/client";
 import { useCreateTask } from "../../hooks/useTasks";
-import type { ProjectMember, TaskPriority, TaskStatus } from "../../types";
-import { PRIORITIES, TASK_STATUSES, priorityLabel, statusLabel } from "./taskMeta";
+import type { ProjectMember, TaskList, TaskPriority } from "../../types";
+import { PRIORITIES, priorityLabel } from "./taskMeta";
 
 interface TaskFormModalProps {
   projectId: number;
   members: ProjectMember[];
-  /** Cột được chọn khi bấm "Thêm thẻ chi tiết". */
-  initialStatus?: TaskStatus;
+  lists: TaskList[];
+  /** Danh sách được chọn khi bấm "Thêm thẻ chi tiết". */
+  initialListId?: number;
   /** Backend chỉ cho admin hoặc chủ dự án gán người thực hiện. */
   canAssign: boolean;
   onClose: () => void;
 }
 
 /** Tạo thẻ với đầy đủ thông tin (thẻ nhanh dùng ô nhập trong cột; xem/sửa dùng TaskDetailModal). */
-const TaskFormModal = ({ projectId, members, initialStatus, canAssign, onClose }: TaskFormModalProps) => {
+const TaskFormModal = ({ projectId, members, lists, initialListId, canAssign, onClose }: TaskFormModalProps) => {
   const toast = useToast();
   const createTask = useCreateTask(projectId);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(initialStatus ?? "pending");
+  const [listId, setListId] = useState<number | undefined>(initialListId ?? lists[0]?.id);
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [assigneeIds, setAssigneeIds] = useState<number[]>([]);
 
@@ -36,7 +37,7 @@ const TaskFormModal = ({ projectId, members, initialStatus, canAssign, onClose }
         title: title.trim(),
         description: description || null,
         deadline: deadline || null,
-        status,
+        list_id: listId,
         priority,
         ...(canAssign ? { assigned_user_ids: assigneeIds } : {}),
       });
@@ -66,11 +67,11 @@ const TaskFormModal = ({ projectId, members, initialStatus, canAssign, onClose }
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            Cột
-            <select className="select select-bordered w-full" value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
-              {TASK_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel[s]}
+            Danh sách
+            <select className="select select-bordered w-full" value={listId} onChange={(e) => setListId(Number(e.target.value))}>
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
                 </option>
               ))}
             </select>

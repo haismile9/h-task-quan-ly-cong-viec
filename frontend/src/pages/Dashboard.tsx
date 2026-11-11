@@ -49,9 +49,9 @@ const Dashboard = () => {
               tone="success"
             />
             <SummaryCard
-              title="Đang làm"
-              value={data.task_summary.in_progress}
-              description={`${data.task_summary.pending} nhiệm vụ chờ làm`}
+              title="Chưa xong"
+              value={data.task_summary.pending + data.task_summary.in_progress}
+              description={`trên tổng ${data.task_summary.total} nhiệm vụ`}
               icon={<AiOutlineSync />}
               tone="info"
             />
