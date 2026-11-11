@@ -6,7 +6,6 @@ use App\Models\EmailVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
 use App\Notifications\SendEmailVerificationCode;
 
 class AuthController extends Controller

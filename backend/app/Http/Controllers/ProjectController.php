@@ -43,6 +43,11 @@ class ProjectController extends Controller
             'description' => 'nullable|string',
             'background_url' => 'nullable|string|max:500', // 🆕 validate ảnh nền
             'collaborator_email' => 'nullable|email|exists:users,email'
+        ], [
+            'name.required' => 'Tên dự án là bắt buộc',
+            'name.max' => 'Tên dự án không được vượt quá 255 ký tự',
+            'collaborator_email.email' => 'Email cộng tác không đúng định dạng',
+            'collaborator_email.exists' => 'Email cộng tác chưa có tài khoản trong hệ thống',
         ]);
 
         DB::beginTransaction();

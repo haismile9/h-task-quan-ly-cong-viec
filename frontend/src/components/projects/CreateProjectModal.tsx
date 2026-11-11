@@ -43,9 +43,10 @@ const CreateProjectModal: React.FC<Props> = ({ onClose, project }) => {
       if (project) {
         await API.put(`/projects/${project.id}`, payload);
       } else {
+        const email = collaboratorEmail.trim();
         await API.post("/projects", {
           ...payload,
-          collaborator_email: collaboratorEmail,
+          ...(email ? { collaborator_email: email } : {}),
         });
       }
 
@@ -54,9 +55,11 @@ const CreateProjectModal: React.FC<Props> = ({ onClose, project }) => {
         setShowSuccess(false);
         window.location.reload();
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ Lỗi khi xử lý dự án:", err);
-      setError("Có lỗi xảy ra khi lưu dự án.");
+      const errors = err.response?.data?.errors;
+      const firstError = errors ? (Object.values(errors)[0] as string[])?.[0] : undefined;
+      setError(firstError || err.response?.data?.message || "Có lỗi xảy ra khi lưu dự án.");
     } finally {
       setLoading(false);
     }
