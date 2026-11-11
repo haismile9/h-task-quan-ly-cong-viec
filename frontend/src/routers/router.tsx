@@ -1,11 +1,15 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import AppLayout, { SidebarLayout } from "../layout/AppLayout";
+import SettingsLayout from "../layout/SettingsLayout";
+import ProfileSettings from "../pages/settings/ProfileSettings";
+import ActivitySettings from "../pages/settings/ActivitySettings";
+import CardsSettings from "../pages/settings/CardsSettings";
+import GeneralSettings from "../pages/settings/GeneralSettings";
 import ProtectedRoute from "../components/ProtectedRoute";
 import Dashboard from "../pages/Dashboard";
 import ProjectList from "../pages/ProjectList";
 import ProjectDetails from "../pages/ProjectDetails";
 import MyTasks from "../pages/MyTasks";
-import Account from "../pages/Account";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -39,9 +43,21 @@ const router = createBrowserRouter([
           { path: "projects", element: <ProjectList /> },
           { path: "my-task", element: <MyTasks /> },
           { path: "dashboard", element: <Dashboard /> },
-          { path: "account", element: <Account /> },
         ],
       },
+      // Cài đặt cá nhân: menu trái riêng
+      {
+        path: "u",
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <Navigate to="/u/profile" replace /> },
+          { path: "profile", element: <ProfileSettings /> },
+          { path: "activity", element: <ActivitySettings /> },
+          { path: "cards", element: <CardsSettings /> },
+          { path: "settings", element: <GeneralSettings /> },
+        ],
+      },
+      { path: "account", element: <Navigate to="/u/profile" replace /> },
       // Trang bảng: chiếm toàn màn hình
       { path: "projects/:id", element: <ProjectDetails /> },
     ],

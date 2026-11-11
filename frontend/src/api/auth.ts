@@ -31,6 +31,12 @@ export const authApi = {
   resetPassword: (input: { email: string; code: string; password: string; password_confirmation: string }) =>
     client.post("/password/reset", input),
 
+  changePassword: (input: { current_password: string; password: string; password_confirmation: string }) =>
+    client.put<{ message: string }>("/account/password", input).then((r) => r.data),
+
+  updateSettings: (input: { email_deadline_reminders: boolean }) =>
+    client.put<{ message: string; user: User }>("/account/settings", input).then((r) => r.data.user),
+
   updateProfile: (input: { name: string }) =>
     client.put<{ message: string; user: User }>("/account", input).then((r) => r.data.user),
 };

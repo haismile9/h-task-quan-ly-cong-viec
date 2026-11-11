@@ -7,6 +7,7 @@ use App\Models\TaskList;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\Activity;
 
 /** Danh sách (cột) trên bảng. Như Trello: mọi thành viên dự án đều quản lý được danh sách. */
 class ListController extends Controller
@@ -33,6 +34,8 @@ class ListController extends Controller
             'position' => (int) $project->lists()->max('position') + 1,
         ]);
 
+        Activity::record('list_created', $project, null, ['list_name' => $list->name]);
+
         return response()->json($list, 201);
     }
 
@@ -44,7 +47,11 @@ class ListController extends Controller
         $list = TaskList::with('project')->findOrFail($id);
         $this->authorizeMember($list->project);
 
+        $oldName = $list->name;
         $list->update(['name' => trim($data['name'])]);
+        if ($oldName !== $list->name) {
+            Activity::record('list_renamed', $list->project, null, ['old_name' => $oldName, 'list_name' => $list->name]);
+        }
 
         return response()->json($list->unsetRelation('project'));
     }
@@ -59,6 +66,10 @@ class ListController extends Controller
             return response()->json(['message' => 'Bảng phải còn ít nhất một danh sách'], 422);
         }
 
+        Activity::record('list_deleted', $list->project, null, [
+            'list_name' => $list->name,
+            'card_count' => $list->tasks()->count(),
+        ]);
         $list->delete(); // thẻ bị xoá theo khoá ngoại cascade
         $this->renumber($list->project_id);
 

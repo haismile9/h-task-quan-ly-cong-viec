@@ -26,14 +26,6 @@ class Comment extends Model
     {
         return $this->belongsTo(Task::class);
     }
-    public function count()
-{
-    return response()->json(['count' => Comment::count()]);
-}
-    public function scopeCount($query)
-    {
-        return $query->count();
-    }
     public function scopeWithUser($query)
     {
         return $query->with('user');

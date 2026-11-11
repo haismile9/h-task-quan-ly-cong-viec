@@ -11,7 +11,8 @@ type Filter = "all" | "open" | "done";
 const FILTER_LABEL: Record<Filter, string> = { all: "Tất cả", open: "Chưa xong", done: "Hoàn thành" };
 const matchFilter = (f: Filter, done: boolean) => f === "all" || (f === "done") === done;
 
-const MyTasks = () => {
+/** Danh sách thẻ được giao cho tôi, có tab lọc (dùng ở "Công việc của tôi" và Cài đặt › Thẻ). */
+export const MyTasksList = () => {
   const { data: tasks = [], isLoading } = useMyTasks();
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -27,7 +28,7 @@ const MyTasks = () => {
   const count = (f: Filter) => tasks.filter((t) => matchFilter(f, isDone(t))).length;
 
   return (
-    <Page title="Công việc của tôi" subtitle="Các nhiệm vụ được giao cho bạn ở mọi dự án.">
+    <>
       <div role="tablist" className="tabs tabs-box w-fit mb-4">
         {(["all", "open", "done"] as Filter[]).map((f) => (
           <button
@@ -83,8 +84,14 @@ const MyTasks = () => {
           })}
         </ul>
       )}
-    </Page>
+    </>
   );
 };
+
+const MyTasks = () => (
+  <Page title="Công việc của tôi" subtitle="Các nhiệm vụ được giao cho bạn ở mọi dự án.">
+    <MyTasksList />
+  </Page>
+);
 
 export default MyTasks;

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
 import {
   AiFillStar,
@@ -58,6 +58,20 @@ const TaskBoard = ({ project }: { project: Project }) => {
   const navigate = useNavigate();
 
   const [modal, setModal] = useState<OpenModal>(null);
+  const [params, setParams] = useSearchParams();
+
+  // Mở thẻ từ link ?card=<id> (vd. bấm vào thẻ trong trang Hoạt động)
+  const cardParam = Number(params.get("card"));
+  useEffect(() => {
+    if (cardParam && tasks.some((t) => t.id === cardParam)) setModal({ type: "edit", taskId: cardParam });
+  }, [cardParam, tasks]);
+  const closeCard = () => {
+    setModal(null);
+    if (params.has("card")) {
+      params.delete("card");
+      setParams(params, { replace: true });
+    }
+  };
   const [filter, setFilter] = useState<BoardFilter>(EMPTY_FILTER);
 
   // Thành viên bảng = người trong project_user + chủ dự án (dữ liệu cũ có thể thiếu chủ).
@@ -320,7 +334,7 @@ const TaskBoard = ({ project }: { project: Project }) => {
         />
       )}
       {modal?.type === "edit" && editingTask && (
-        <TaskDetailModal task={editingTask} lists={lists} members={members} onClose={() => setModal(null)} />
+        <TaskDetailModal task={editingTask} lists={lists} members={members} onClose={closeCard} />
       )}
       {modal?.type === "member" && <AddMemberModal project={project} canManage={isManager} onClose={() => setModal(null)} />}
       {modal?.type === "editProject" && <CreateProjectModal project={project} onClose={() => setModal(null)} />}

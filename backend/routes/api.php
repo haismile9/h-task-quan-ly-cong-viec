@@ -11,6 +11,7 @@ use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ListController;
+use App\Http\Controllers\ActivityController;
 
 
 // 🟢 Public routes (không cần đăng nhập)
@@ -95,6 +96,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn (Request $request) => $request->user());
     Route::get('/account', fn (Request $req) => $req->user());
     Route::put('/account', [AuthController::class, 'updateProfile']);
+    Route::put('/account/password', [AuthController::class, 'changePassword']);
+    Route::put('/account/settings', [AuthController::class, 'updateSettings']);
+
+    // 🕘 Nhật ký hoạt động
+    Route::get('/activities/me', [ActivityController::class, 'mine']);
+    Route::get('/tasks/{taskId}/activities', [ActivityController::class, 'forTask']);
+    Route::get('/projects/{projectId}/activities', [ActivityController::class, 'forProject']);
 
     // 📊 Statistics
     Route::get('/projects/count', [ProjectController::class, 'count']);

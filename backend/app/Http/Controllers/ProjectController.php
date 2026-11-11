@@ -12,6 +12,7 @@ use App\Mail\ProjectInvitationMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Models\Activity;
 
 class ProjectController extends Controller
 {
@@ -78,6 +79,7 @@ class ProjectController extends Controller
             }
 
             DB::commit();
+            Activity::record('project_created', $project);
             return response()->json($project, 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -201,6 +203,7 @@ class ProjectController extends Controller
                 return response()->json(['message' => "{$user->name} đã là thành viên của dự án"], 422);
             }
             $project->users()->attach($user->id, ['role' => 'member']);
+            Activity::record('member_added', $project, null, ['member_id' => $user->id, 'member_name' => $user->name]);
 
             return response()->json(['status' => 'added', 'message' => "Đã thêm {$user->name} vào dự án"]);
         }
@@ -213,6 +216,8 @@ class ProjectController extends Controller
         }
         $invitation->invited_by = $currentUser->id;
         $invitation->save();
+
+        Activity::record('member_invited', $project, null, ['email' => $email]);
 
         $mailSent = true;
         try {

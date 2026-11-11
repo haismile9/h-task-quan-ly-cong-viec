@@ -4,10 +4,22 @@ import { useAuth } from "../context/AuthContext";
 import { useComments, useCreateComment, useDeleteComment } from "../hooks/useComments";
 import { getErrorMessage } from "../api/client";
 import Avatar from "./ui/Avatar";
+import ActivityItem from "./activity/ActivityItem";
+import { useTaskActivities } from "../hooks/useActivities";
+import type { Activity, Comment } from "../types";
 import { useConfirm } from "./ui/ConfirmDialog";
 
 /** Ô viết bình luận + danh sách bình luận (mới nhất trước), dùng trong chi tiết thẻ. */
-const CommentSection = ({ taskId }: { taskId: number }) => {
+interface CommentSectionProps {
+  taskId: number;
+  /** Hiện cả hoạt động của thẻ xen giữa bình luận ("Hiện chi tiết"). */
+  showActivity?: boolean;
+}
+
+type FeedItem = { kind: "comment"; at: string; comment: Comment } | { kind: "activity"; at: string; activity: Activity };
+
+const CommentSection = ({ taskId, showActivity = false }: CommentSectionProps) => {
+  const { data: activityPage } = useTaskActivities(showActivity ? taskId : 0);
   const { user } = useAuth();
   const { data: comments = [], isLoading } = useComments(taskId);
   const createComment = useCreateComment(taskId);
@@ -28,6 +40,14 @@ const CommentSection = ({ taskId }: { taskId: number }) => {
       // Lỗi hiển thị bên dưới ô nhập
     }
   };
+
+  // Dòng thời gian: bình luận (luôn hiện) + hoạt động (khi bật chi tiết), mới nhất trước
+  const feed: FeedItem[] = [
+    ...comments.map((c) => ({ kind: "comment" as const, at: c.created_at, comment: c })),
+    ...(showActivity ? activityPage?.data ?? [] : [])
+      .filter((a) => a.type !== "comment_added")
+      .map((a) => ({ kind: "activity" as const, at: a.created_at, activity: a })),
+  ].sort((x, y) => y.at.localeCompare(x.at));
 
   const handleDelete = async (id: number) => {
     const ok = await confirm({ title: "Xoá bình luận", message: "Xoá bình luận này?", confirmText: "Xoá", danger: true });
@@ -71,33 +91,39 @@ const CommentSection = ({ taskId }: { taskId: number }) => {
 
       {isLoading ? (
         <span className="loading loading-dots loading-sm" />
-      ) : comments.length === 0 ? (
+      ) : feed.length === 0 ? (
         <p className="text-sm text-base-content/50">Chưa có bình luận nào.</p>
       ) : (
         <ul className="space-y-4">
-          {comments.map((c) => (
-            <li key={c.id} className="flex gap-2">
-              <Avatar name={c.user?.name ?? "?"} size="sm" className="shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm">
-                  <span className="font-semibold">{c.user?.name}</span>{" "}
-                  <span className="text-xs text-base-content/60">{dayjs(c.created_at).format("HH:mm DD/MM/YYYY")}</span>
-                </p>
-                <div className="bg-base-100 rounded-lg px-3 py-2 mt-1 text-sm shadow-[0_1px_1px_#091e4240] whitespace-pre-line break-words">
-                  {c.content}
+          {feed.map((item) =>
+            item.kind === "activity" ? (
+              <ActivityItem key={`a-${item.activity.id}`} activity={item.activity} showContext={false} />
+            ) : (
+              <li key={`c-${item.comment.id}`} className="flex gap-2">
+                <Avatar name={item.comment.user?.name ?? "?"} size="sm" className="shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm">
+                    <span className="font-semibold">{item.comment.user?.name}</span>{" "}
+                    <span className="text-xs text-base-content/60">
+                      {dayjs(item.comment.created_at).format("HH:mm DD/MM/YYYY")}
+                    </span>
+                  </p>
+                  <div className="bg-base-100 rounded-lg px-3 py-2 mt-1 text-sm shadow-[0_1px_1px_#091e4240] whitespace-pre-line break-words">
+                    {item.comment.content}
+                  </div>
+                  {item.comment.user_id === user?.id && (
+                    <button
+                      className="text-xs text-base-content/60 underline hover:text-error mt-1"
+                      onClick={() => handleDelete(item.comment.id)}
+                      disabled={deleteComment.isPending}
+                    >
+                      Xoá
+                    </button>
+                  )}
                 </div>
-                {c.user_id === user?.id && (
-                  <button
-                    className="text-xs text-base-content/60 underline hover:text-error mt-1"
-                    onClick={() => handleDelete(c.id)}
-                    disabled={deleteComment.isPending}
-                  >
-                    Xoá
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          )}
         </ul>
       )}
     </div>

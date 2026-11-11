@@ -7,6 +7,8 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  /** Cài đặt: nhận email nhắc hạn chót. */
+  email_deadline_reminders?: boolean;
   email_verified_at?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -109,6 +111,43 @@ export interface Comment {
   created_at: string;
   updated_at: string;
   user: User;
+}
+
+// ----- Nhật ký hoạt động -----
+
+export type ActivityType =
+  | "project_created"
+  | "member_added"
+  | "member_invited"
+  | "list_created"
+  | "list_renamed"
+  | "list_deleted"
+  | "card_created"
+  | "card_moved"
+  | "card_completed"
+  | "card_reopened"
+  | "card_renamed"
+  | "card_deleted"
+  | "card_due_changed"
+  | "card_member_added"
+  | "card_member_removed"
+  | "comment_added";
+
+export interface Activity {
+  id: number;
+  type: ActivityType;
+  task_id: number | null;
+  project_id: number | null;
+  created_at: string;
+  user: Pick<User, "id" | "name" | "email">;
+  project: Pick<Project, "id" | "name" | "background_url"> | null;
+  /** Tên thẻ, danh sách, người liên quan… lưu sẵn lúc ghi. */
+  data: Record<string, string | number | null>;
+}
+
+export interface ActivityPage {
+  data: Activity[];
+  has_more: boolean;
 }
 
 // ----- Dashboard (GET /dashboard) -----

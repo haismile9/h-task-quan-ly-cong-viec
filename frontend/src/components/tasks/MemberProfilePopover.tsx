@@ -46,7 +46,7 @@ const MemberProfilePopover = ({ anchor, member, onRemove, onClose }: MemberProfi
               <button
                 onClick={() => {
                   onClose();
-                  navigate("/account");
+                  navigate("/u/profile");
                 }}
               >
                 Xem hồ sơ

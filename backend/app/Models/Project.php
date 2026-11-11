@@ -91,10 +91,6 @@ class Project extends Model
     {
         return $query->orderBy('created_at', 'desc');
     }
-    public function scopeCount($query)
-    {
-        return $query->count();
-    }
     public function scopeForUser($query, $userId)
     {
         return $query->where('owner_id', $userId);

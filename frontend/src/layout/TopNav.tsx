@@ -2,15 +2,14 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AiOutlineClose, AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../context/AuthContext";
-import Avatar from "../components/ui/Avatar";
+import AccountMenu from "./AccountMenu";
 import ProjectForm from "../components/projects/ProjectForm";
-import { closeDropdown } from "../utils/closeDropdown";
 
-export const roleLabel: Record<string, string> = { admin: "Quản trị viên", leader: "Trưởng nhóm", member: "Thành viên" };
+export { roleLabel } from "./AccountMenu";
 
 /** Thanh trên cùng màu trắng: logo, tìm kiếm, nút "Tạo mới", menu tài khoản. */
 const TopNav = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [query, setQuery] = useState(params.get("q") ?? "");
@@ -35,16 +34,26 @@ const TopNav = () => {
     };
   }, [creating]);
 
+  // Phím "/" (khi không đang gõ) để tìm kiếm, giống Trello
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) && !t.isContentEditable) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     const q = query.trim();
     navigate(q ? `/projects?q=${encodeURIComponent(q)}` : "/projects");
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
 
   return (
     <header className="h-12 shrink-0 bg-base-100 border-b border-base-300 flex items-center gap-2 sm:gap-3 px-2 sm:px-4 sticky top-0 z-40">
@@ -57,9 +66,10 @@ const TopNav = () => {
         <label className="input input-sm input-bordered w-full max-w-2xl flex items-center gap-2 bg-base-100">
           <AiOutlineSearch className="text-base-content/50 shrink-0" />
           <input
+            ref={searchRef}
             type="search"
             className="grow min-w-0"
-            placeholder="Tìm kiếm dự án"
+            placeholder="Tìm kiếm dự án  ( / )"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Tìm kiếm dự án"
@@ -87,35 +97,7 @@ const TopNav = () => {
         </div>
       )}
 
-      {user && (
-        <div className="dropdown dropdown-end shrink-0">
-          <button tabIndex={0} className="rounded-full hover:ring-2 hover:ring-base-300 flex" aria-label="Tài khoản">
-            <Avatar name={user.name} size="sm" />
-          </button>
-          <div tabIndex={0} className="dropdown-content bg-base-100 rounded-box shadow-xl border border-base-300 w-72 mt-2 z-50 p-2">
-            <p className="text-xs font-semibold text-base-content/60 px-2 pt-1 pb-2 uppercase">Tài khoản</p>
-            <div className="flex items-center gap-3 px-2 pb-3 border-b border-base-300">
-              <Avatar name={user.name} />
-              <div className="min-w-0">
-                <p className="font-semibold truncate">{user.name}</p>
-                <p className="text-xs text-base-content/60 truncate">{user.email}</p>
-                <p className="text-xs text-primary">{roleLabel[user.role] ?? user.role}</p>
-              </div>
-            </div>
-            <ul className="menu p-0 pt-1 w-full" onClick={closeDropdown}>
-              <li>
-                <Link to="/account">Hồ sơ và cài đặt</Link>
-              </li>
-              <li>
-                <Link to="/my-task">Công việc của tôi</Link>
-              </li>
-              <li className="border-t border-base-300 mt-1 pt-1">
-                <button onClick={handleLogout}>Đăng xuất</button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      )}
+      <AccountMenu />
     </header>
   );
 };

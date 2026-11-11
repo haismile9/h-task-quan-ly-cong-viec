@@ -16,21 +16,32 @@ class CheckTaskDeadlines extends Command
 
     public function handle()
     {
-        $now = Carbon::now();
-        $soon = $now->copy()->addDays(1); // Lọc task sắp đến hạn (trong 1 ngày tới)
+        // deadline chỉ có ngày: so theo ngày (hôm nay và ngày mai), không so với giờ hiện tại
+        $today = Carbon::today()->toDateString();
+        $tomorrow = Carbon::tomorrow()->toDateString();
 
         $tasks = Task::whereNotNull('deadline')
             ->where('status', '!=', 'done')
-            ->whereBetween('deadline', [$now, $soon])
+            ->whereBetween('deadline', [$today, $tomorrow])
+            ->with(['assignedUsers', 'project'])
             ->get();
 
         foreach ($tasks as $task) {
-            if (!$task->assigned_to) continue;
+            // Người được gán qua giao diện nằm ở bảng task_user; vẫn giữ cột cũ assigned_to
+            $recipients = $task->assignedUsers;
+            if ($task->assigned_to && !$recipients->contains('id', $task->assigned_to)) {
+                if ($legacy = User::find($task->assigned_to)) {
+                    $recipients->push($legacy);
+                }
+            }
 
-            $user = \App\Models\User::find($task->assigned_to);
-            if ($user && $user->email) {
+            foreach ($recipients as $user) {
+                // Bỏ qua người đã tắt "Nhận email nhắc hạn chót" trong Cài đặt
+                if (!$user->email || !$user->email_deadline_reminders) {
+                    continue;
+                }
                 Mail::to($user->email)->send(new TaskDeadlineReminderMail($task));
-                $this->info("📧 Gửi mail nhắc: " . $user->email . " - Task: " . $task->title);
+                $this->info("📧 Gửi mail nhắc: {$user->email} - Task: {$task->title}");
             }
         }
 

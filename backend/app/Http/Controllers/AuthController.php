@@ -114,6 +114,43 @@ class AuthController extends Controller
         return response()->json(['message' => 'Đăng xuất thành công']);
     }
 
+    /** Đổi mật khẩu: cần mật khẩu hiện tại. Đăng xuất các phiên khác để an toàn. */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại',
+            'password.required' => 'Vui lòng nhập mật khẩu mới',
+            'password.min' => 'Mật khẩu mới phải gồm ít nhất 8 ký tự',
+            'password.confirmed' => 'Mật khẩu xác nhận không khớp',
+        ]);
+
+        $user = $request->user();
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Mật khẩu hiện tại không đúng',
+                'errors' => ['current_password' => ['Mật khẩu hiện tại không đúng']],
+            ], 422);
+        }
+
+        $user->update(['password' => $request->password]);
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+
+        return response()->json(['message' => 'Đã đổi mật khẩu']);
+    }
+
+    /** Cài đặt cá nhân (hiện có: nhận email nhắc hạn chót). */
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate(['email_deadline_reminders' => 'required|boolean']);
+        $user = $request->user();
+        $user->forceFill($data)->save();
+
+        return response()->json(['message' => 'Đã lưu cài đặt', 'user' => $user]);
+    }
+
     public function updateProfile(Request $request)
     {
         $request->validate(['name' => 'required|string|max:100']);

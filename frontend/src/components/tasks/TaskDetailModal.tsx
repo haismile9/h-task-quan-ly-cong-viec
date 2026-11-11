@@ -56,6 +56,7 @@ const TaskDetailModal = ({ task, lists, members, onClose }: TaskDetailModalProps
   const [editingDesc, setEditingDesc] = useState(false);
   const [description, setDescription] = useState(task.description ?? "");
   const [deadline, setDeadline] = useState(task.deadline?.slice(0, 10) ?? "");
+  const [showDetails, setShowDetails] = useState(true);
   /** Nút đang mở popover Thành viên (nút "Thành viên" hoặc nút ＋ cạnh avatar). */
   const [membersAnchor, setMembersAnchor] = useState<HTMLElement | null>(null);
   const toggleMembers = (el: HTMLElement) => setMembersAnchor((cur) => (cur === el ? null : el));
@@ -384,10 +385,15 @@ const TaskDetailModal = ({ task, lists, members, onClose }: TaskDetailModalProps
 
           {/* Cột phải: bình luận và hoạt động */}
           <aside className="bg-base-200 p-4 md:overflow-y-auto border-t md:border-t-0 md:border-l border-base-300">
-            <h3 className="font-semibold flex items-center gap-2 mb-3">
-              <AiOutlineComment className="text-xl" /> Bình luận và hoạt động
-            </h3>
-            <CommentSection taskId={task.id} />
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="font-semibold flex items-center gap-2 flex-1">
+                <AiOutlineComment className="text-xl" /> Bình luận và hoạt động
+              </h3>
+              <button className="btn btn-sm bg-base-100 border-base-300 font-normal" onClick={() => setShowDetails((v) => !v)}>
+                {showDetails ? "Ẩn chi tiết" : "Hiện chi tiết"}
+              </button>
+            </div>
+            <CommentSection taskId={task.id} showActivity={showDetails} />
             <p className="text-xs text-base-content/50 mt-4">
               Thẻ được tạo lúc {dayjs(task.created_at).format("HH:mm DD/MM/YYYY")}
             </p>

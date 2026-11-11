@@ -10,7 +10,10 @@ export const useCreateComment = (taskId: number) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (content: string) => commentsApi.create(taskId, content),
-    onSuccess: () => qc.invalidateQueries({ queryKey: commentKeys.byTask(taskId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: commentKeys.byTask(taskId) });
+      qc.invalidateQueries({ queryKey: ["activities"] });
+    },
   });
 };
 
@@ -18,6 +21,9 @@ export const useDeleteComment = (taskId: number) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (commentId: number) => commentsApi.remove(commentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: commentKeys.byTask(taskId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: commentKeys.byTask(taskId) });
+      qc.invalidateQueries({ queryKey: ["activities"] });
+    },
   });
 };

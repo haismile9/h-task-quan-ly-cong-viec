@@ -20,6 +20,7 @@ const useInvalidateBoard = (projectId: number) => {
     qc.invalidateQueries({ queryKey: taskKeys.board(projectId) });
     qc.invalidateQueries({ queryKey: taskKeys.mine });
     qc.invalidateQueries({ queryKey: ["dashboard"] });
+    qc.invalidateQueries({ queryKey: ["activities"] });
   };
 };
 

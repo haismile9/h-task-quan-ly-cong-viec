@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { AiOutlineCheckSquare, AiOutlineDashboard, AiOutlineProject, AiOutlineUser } from "react-icons/ai";
+import { AiOutlineCheckSquare, AiOutlineDashboard, AiOutlineProject } from "react-icons/ai";
 import { useProjects } from "../hooks/useProjects";
 import { backgroundCss } from "../utils/boardBackgrounds";
 
@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { to: "/projects", label: "Bảng", icon: <AiOutlineProject /> },
   { to: "/my-task", label: "Công việc của tôi", icon: <AiOutlineCheckSquare /> },
   { to: "/dashboard", label: "Tổng quan", icon: <AiOutlineDashboard /> },
-  { to: "/account", label: "Hồ sơ", icon: <AiOutlineUser /> },
 ];
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>

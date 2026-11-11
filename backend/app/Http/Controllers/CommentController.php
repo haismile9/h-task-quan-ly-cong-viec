@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Activity;
 
 class CommentController extends Controller
 {
@@ -25,6 +26,10 @@ class CommentController extends Controller
             'user_id' => Auth::id(),
             'content' => $request->content,
         ]);
+
+        if ($task = \App\Models\Task::find($taskId)) {
+            Activity::record('comment_added', null, $task, ['excerpt' => mb_substr($comment->content, 0, 120)]);
+        }
 
         return response()->json($comment->load('user'), 201);
     }

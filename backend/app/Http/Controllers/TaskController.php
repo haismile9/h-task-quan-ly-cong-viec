@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Models\Activity;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -111,6 +112,8 @@ class TaskController extends Controller
         $task->assignedUsers()->sync($assignedIds);
     }
 
+    Activity::record('card_created', $project, $task, ['list_name' => $list->name]);
+
     return response()->json($task->load('assignedUsers:id,name,email'), 201);
 }
 
@@ -161,6 +164,10 @@ class TaskController extends Controller
         'assigned_user_ids.*' => 'integer|exists:users,id',
     ]);
 
+    // Giá trị cũ để ghi hoạt động
+    $before = $task->only(['title', 'status', 'deadline']);
+    $beforeAssignees = $task->assignedUsers()->pluck('users.id')->all();
+
     // Cập nhật thông tin cơ bản
     $task->update($request->only(['title', 'description', 'status', 'priority', 'deadline']));
 
@@ -192,10 +199,12 @@ class TaskController extends Controller
         }
     }
 
-    // Gán lại danh sách thực hiện nếu có
-    if (!empty($assignedIds)) {
+    // Gán lại danh sách thực hiện khi client gửi lên (kể cả mảng rỗng = bỏ gán tất cả)
+    if ($request->has('assigned_user_ids') || $request->has('assigned_user_emails')) {
         $task->assignedUsers()->sync($assignedIds);
     }
+
+    $this->logTaskChanges($task, $before, $beforeAssignees, $assignedIds, $request);
 
     return response()->json(
         $task->load('assignedUsers:id,name,email')
@@ -215,6 +224,7 @@ class TaskController extends Controller
             return response()->json(['message' => 'Bạn không thuộc dự án này'], 403);
         }
 
+        Activity::record('card_deleted', $project, $task);
         $task->delete();
 
         return response()->json(['message' => 'Đã xóa task']);
@@ -376,6 +386,8 @@ class TaskController extends Controller
             return response()->json(['message' => 'Danh sách không tồn tại trong dự án'], 422);
         }
 
+        $fromList = $task->list;
+
         DB::transaction(function () use ($task, $target, $data) {
             $oldListId = $task->list_id;
 
@@ -396,7 +408,42 @@ class TaskController extends Controller
             }
         });
 
+        if ($fromList && $fromList->id !== $target->id) {
+            Activity::record('card_moved', $project, $task, ['from_list' => $fromList->name, 'to_list' => $target->name]);
+        }
+
         return response()->json($task->fresh()->load('assignedUsers:id,name,email'));
+    }
+
+    /** Ghi các hoạt động sau khi sửa thẻ: đổi tên, hoàn thành/mở lại, đổi hạn, thêm/loại thành viên. */
+    private function logTaskChanges(Task $task, array $before, array $beforeAssignees, array $assignedIds, Request $request): void
+    {
+        $project = $task->project;
+
+        if ($request->has('title') && $before['title'] !== $task->title) {
+            Activity::record('card_renamed', $project, $task, ['old_title' => $before['title']]);
+        }
+        if ($request->has('status') && $before['status'] !== $task->status) {
+            $done = $task->status === 'done';
+            if ($done || $before['status'] === 'done') {
+                Activity::record($done ? 'card_completed' : 'card_reopened', $project, $task);
+            }
+        }
+        if ($request->exists('deadline') && (string) $before['deadline'] !== (string) $task->deadline) {
+            Activity::record('card_due_changed', $project, $task, ['deadline' => $task->deadline]);
+        }
+        if ($request->has('assigned_user_ids') || $request->has('assigned_user_emails')) {
+            $assignedIds = array_map('intval', $assignedIds);
+            $added = array_diff($assignedIds, $beforeAssignees);
+            $removed = array_diff($beforeAssignees, $assignedIds);
+            $names = User::whereIn('id', array_merge($added, $removed))->pluck('name', 'id');
+            foreach ($added as $id) {
+                Activity::record('card_member_added', $project, $task, ['member_id' => $id, 'member_name' => $names[$id] ?? '']);
+            }
+            foreach ($removed as $id) {
+                Activity::record('card_member_removed', $project, $task, ['member_id' => $id, 'member_name' => $names[$id] ?? '']);
+            }
+        }
     }
 
     /** Thành viên dự án gồm người trong project_user và chủ dự án (dữ liệu cũ có thể thiếu chủ trong bảng). */
