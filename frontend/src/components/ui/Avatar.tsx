@@ -1,10 +1,27 @@
-const PALETTE = ["#0c66e4", "#1d7afc", "#0055cc", "#22a06b", "#6e5dc6", "#e56910", "#c9372c", "#206a83"];
+/** 12 màu khác sắc độ rõ rệt, đủ đậm để chữ trắng dễ đọc. */
+const PALETTE = [
+  "#0c66e4", // xanh dương
+  "#1f845a", // xanh lá
+  "#c9372c", // đỏ
+  "#6e5dc6", // tím
+  "#b65c02", // cam
+  "#227d9b", // xanh ngọc
+  "#ae4787", // hồng đậm
+  "#5b7f24", // xanh rêu
+  "#4f46e5", // chàm
+  "#8f5b3a", // nâu
+  "#d6336c", // hồng
+  "#44546f", // xám xanh
+];
 
-/** Màu cố định theo tên để mỗi người luôn có cùng một màu avatar. */
+/** Màu cố định theo tên (băm FNV-1a để tên ngắn/giống nhau vẫn phân tán đều). */
 const colorFor = (name: string) => {
-  let hash = 0;
-  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
-  return PALETTE[Math.abs(hash) % PALETTE.length];
+  let hash = 0x811c9dc5;
+  for (const ch of name.trim().toLowerCase()) {
+    hash ^= ch.codePointAt(0)!;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return PALETTE[(hash >>> 0) % PALETTE.length];
 };
 
 const initials = (name: string) =>
