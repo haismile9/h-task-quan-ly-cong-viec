@@ -5,7 +5,7 @@ import Avatar from "../ui/Avatar";
 import { useToast } from "../ui/Toast";
 import { useConfirm } from "../ui/ConfirmDialog";
 import { getErrorMessage } from "../../api/client";
-import { useAddProjectMember, useCancelInvitation } from "../../hooks/useProjects";
+import { useAddProjectMember, useCancelInvitation, useRemoveProjectMember } from "../../hooks/useProjects";
 import type { Project } from "../../types";
 
 interface ShareProjectModalProps {
@@ -24,6 +24,7 @@ const AddMemberModal = ({ project, canManage, onClose }: ShareProjectModalProps)
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const addMember = useAddProjectMember(project.id);
   const cancelInvitation = useCancelInvitation(project.id);
+  const removeMember = useRemoveProjectMember(project.id);
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -61,6 +62,22 @@ const AddMemberModal = ({ project, canManage, onClose }: ShareProjectModalProps)
       toast.success("Đã huỷ lời mời");
     } catch (err) {
       toast.error(getErrorMessage(err, "Không huỷ được lời mời."));
+    }
+  };
+
+  const handleRemove = async (userId: number, name: string) => {
+    const ok = await confirm({
+      title: "Gỡ thành viên",
+      message: `Gỡ ${name} khỏi dự án? Người này cũng sẽ bị gỡ khỏi mọi thẻ của dự án.`,
+      confirmText: "Gỡ khỏi dự án",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await removeMember.mutateAsync(userId);
+      toast.success(res.message);
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Không gỡ được thành viên."));
     }
   };
 
@@ -131,6 +148,15 @@ const AddMemberModal = ({ project, canManage, onClose }: ShareProjectModalProps)
               <span className="badge badge-sm badge-ghost">
                 {m.id === project.owner_id || m.pivot?.role === "leader" ? "Chủ dự án" : "Thành viên"}
               </span>
+              {canManage && m.id !== project.owner_id && (
+                <button
+                  className="btn btn-ghost btn-xs text-error"
+                  onClick={() => handleRemove(m.id, m.name)}
+                  disabled={removeMember.isPending}
+                >
+                  Gỡ
+                </button>
+              )}
             </li>
           ))}
           {pending.map((inv) => (

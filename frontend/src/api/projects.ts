@@ -23,6 +23,10 @@ export const projectsApi = {
   addMember: (id: number, email: string) =>
     client.post<AddMemberResult>(`/projects/${id}/members`, { email }).then((r) => r.data),
 
+  /** Gỡ thành viên khỏi dự án (và khỏi mọi thẻ của dự án). */
+  removeMember: (id: number, userId: number) =>
+    client.delete<{ message: string }>(`/projects/${id}/members/${userId}`).then((r) => r.data),
+
   cancelInvitation: (id: number, invitationId: number) =>
     client.delete(`/projects/${id}/invitations/${invitationId}`),
 };

@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { AiOutlineCheck, AiOutlineClose, AiOutlineEllipsis, AiOutlineLeft, AiOutlineSearch, AiOutlineUpload } from "react-icons/ai";
 import AnchoredPopover from "../ui/AnchoredPopover";
 import { useToast } from "../ui/Toast";
-import { getErrorMessage, getStatus } from "../../api/client";
+import { getErrorMessage } from "../../api/client";
 import { useMyBackgrounds, useUploadBackground } from "../../hooks/useBackgrounds";
-import { trackUnsplashDownload, useUnsplashPhotos, type UnsplashPhoto } from "../../hooks/useUnsplash";
 import { BOARD_GRADIENTS, backgroundCss } from "../../utils/boardBackgrounds";
+import { PHOTO_CATEGORIES, PRESET_PHOTOS, searchPresetPhotos, type PresetPhoto } from "../../utils/presetPhotos";
 
 interface BackgroundPickerProps {
   value: string;
@@ -44,63 +44,41 @@ const Swatch = ({
   </button>
 );
 
-/** Ảnh Unsplash: hiện tên tác giả khi rê chuột (ghi công theo yêu cầu của Unsplash). */
-const UnsplashTile = ({ photo, selected, onPick, className }: { photo: UnsplashPhoto; selected: boolean; onPick: () => void; className: string }) => (
-  <div className={`relative group rounded-md overflow-hidden ${className}`} style={{ background: photo.color ?? "#ddd" }}>
-    <button
-      type="button"
-      onClick={onPick}
-      aria-label={`Ảnh của ${photo.author}${photo.alt ? `: ${photo.alt}` : ""}`}
-      aria-pressed={selected}
-      className={`w-full h-full bg-cover bg-center hover:brightness-90 transition flex items-center justify-center text-white ${
-        selected ? "ring-2 ring-inset ring-primary" : ""
-      }`}
-      style={{ backgroundImage: `url("${photo.thumb}")` }}
-    >
-      {selected && <AiOutlineCheck className="text-lg drop-shadow" />}
-    </button>
-    <a
-      href={photo.author_url}
-      target="_blank"
-      rel="noreferrer"
-      className="absolute bottom-0 inset-x-0 px-1.5 py-0.5 text-[10px] text-white bg-black/50 truncate opacity-0 group-hover:opacity-100 transition"
-    >
-      {photo.author}
-    </a>
-  </div>
+/** Ô ảnh có sẵn: hiện tên ảnh khi rê chuột. */
+const PhotoTile = ({ photo, selected, onPick, className }: { photo: PresetPhoto; selected: boolean; onPick: () => void; className: string }) => (
+  <button
+    type="button"
+    onClick={onPick}
+    title={photo.label}
+    aria-label={photo.label}
+    aria-pressed={selected}
+    className={`relative group rounded-md overflow-hidden bg-base-300 bg-cover bg-center hover:brightness-90 transition flex items-center justify-center text-white ${className} ${
+      selected ? "ring-2 ring-offset-1 ring-primary" : ""
+    }`}
+    style={{ backgroundImage: `url("${photo.thumb}")` }}
+  >
+    {selected && <AiOutlineCheck className="text-lg drop-shadow" />}
+    <span className="absolute bottom-0 inset-x-0 px-1.5 py-0.5 text-[10px] text-left bg-black/50 truncate opacity-0 group-hover:opacity-100 transition">
+      {photo.label}
+    </span>
+  </button>
 );
 
 /**
  * Chọn phông nền như Trello: hàng chọn nhanh + nút ⋯ mở "Phông nền bảng"
- * (Ảnh từ Unsplash, Màu sắc, tải ảnh của bạn). "Xem thêm" mở danh sách Unsplash có tìm kiếm.
+ * (Ảnh, Màu sắc, tải ảnh của bạn). "Xem thêm" mở toàn bộ ảnh có sẵn kèm tìm kiếm.
  */
 const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [view, setView] = useState<"main" | "unsplash">("main");
+  const [view, setView] = useState<"main" | "photos">("main");
   const [allColors, setAllColors] = useState(false);
   const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
-
-  // Gõ xong 400ms mới tìm, tránh gọi API theo từng ký tự
-  useEffect(() => {
-    const t = setTimeout(() => setQuery(search), 400);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const featured = useUnsplashPhotos("");
-  const searched = useUnsplashPhotos(query);
-  const featuredPhotos = featured.data?.pages[0]?.results ?? [];
-  const notConfigured = getStatus(featured.error) === 503;
+  const photos = useMemo(() => searchPresetPhotos(search), [search]);
 
   const { data: uploads = [] } = useMyBackgrounds();
   const upload = useUploadBackground();
-
-  const pickPhoto = (photo: UnsplashPhoto) => {
-    onChange(photo.full);
-    trackUnsplashDownload(photo);
-  };
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,9 +93,9 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
     }
   };
 
-  // Hàng chọn nhanh: 3 ảnh Unsplash + 2 màu, luôn kèm lựa chọn hiện tại
-  const quick: Array<{ value: string; css: string; label: string; photo?: UnsplashPhoto }> = [
-    ...featuredPhotos.slice(0, 3).map((p) => ({ value: p.full, css: `url("${p.thumb}") center / cover`, label: `Ảnh của ${p.author}`, photo: p })),
+  // Hàng chọn nhanh: 3 ảnh + 2 màu, luôn kèm lựa chọn hiện tại
+  const quick: Array<{ value: string; css: string; label: string }> = [
+    ...PRESET_PHOTOS.slice(0, 3).map((p) => ({ value: p.url, css: `#ddd url("${p.thumb}") center / cover`, label: p.label })),
     ...COLORS.map((c) => ({ value: c.value, css: backgroundCss(c.value), label: c.label })),
   ].slice(0, 5);
   if (!quick.some((q) => q.value === value)) {
@@ -127,6 +105,7 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
   const close = () => {
     setAnchor(null);
     setView("main");
+    setSearch("");
   };
 
   const header = (title: React.ReactNode, onBack?: () => void) => (
@@ -145,8 +124,6 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
     </div>
   );
 
-  const searchedPhotos = searched.data?.pages.flatMap((p) => p.results) ?? [];
-
   return (
     <div>
       <p className="text-xs font-semibold mb-1.5">Phông nền</p>
@@ -157,7 +134,7 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
             css={q.css}
             label={q.label}
             selected={q.value === value}
-            onClick={() => (q.photo ? pickPhoto(q.photo) : onChange(q.value))}
+            onClick={() => onChange(q.value)}
           />
         ))}
         <button
@@ -183,31 +160,15 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
 
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Ảnh</p>
-            {!notConfigured && (
-              <button type="button" className="btn btn-xs" onClick={() => setView("unsplash")}>
-                Xem thêm
-              </button>
-            )}
+            <button type="button" className="btn btn-xs" onClick={() => setView("photos")}>
+              Xem thêm
+            </button>
           </div>
-          {notConfigured ? (
-            <p className="text-xs text-base-content/60 bg-base-200 rounded-md p-2 mb-4">
-              Chưa kết nối Unsplash. Quản trị viên cần thêm <code>UNSPLASH_ACCESS_KEY</code> vào <code>backend/.env</code>.
-            </p>
-          ) : featured.isLoading ? (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="skeleton h-14 rounded-md" />
-              ))}
-            </div>
-          ) : featured.isError ? (
-            <p className="text-xs text-error mb-4">{getErrorMessage(featured.error, "Không tải được ảnh Unsplash.")}</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {featuredPhotos.slice(0, 6).map((p) => (
-                <UnsplashTile key={p.id} photo={p} selected={p.full === value} onPick={() => pickPhoto(p)} className="h-14" />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {PRESET_PHOTOS.slice(0, 6).map((p) => (
+              <PhotoTile key={p.id} photo={p} selected={p.url === value} onPick={() => onChange(p.url)} className="h-14" />
+            ))}
+          </div>
 
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Màu sắc</p>
@@ -256,59 +217,53 @@ const BackgroundPicker = ({ value, onChange }: BackgroundPickerProps) => {
         </AnchoredPopover>
       )}
 
-      {anchor && view === "unsplash" && (
-        <AnchoredPopover anchor={anchor} onClose={close} width={340} label="Ảnh của Unsplash">
-          {header(
-            <>
-              Ảnh của{" "}
-              <a href="https://unsplash.com/?utm_source=h_task&utm_medium=referral" target="_blank" rel="noreferrer" className="link link-primary">
-                Unsplash
-              </a>
-            </>,
-            () => setView("main")
-          )}
-          <label className="input input-bordered input-sm w-full flex items-center gap-2 mb-3">
+      {anchor && view === "photos" && (
+        <AnchoredPopover anchor={anchor} onClose={close} width={340} label="Ảnh">
+          {header("Ảnh", () => setView("main"))}
+          <label className="input input-bordered input-sm w-full flex items-center gap-2 mb-2">
             <AiOutlineSearch className="text-base-content/50" />
             <input
               className="grow"
-              placeholder="Ảnh (vd. núi, biển, thành phố)"
+              placeholder="Tìm ảnh (vd. núi, biển, rừng)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
             />
+            {search && (
+              <button type="button" className="text-base-content/50 hover:text-base-content" onClick={() => setSearch("")} aria-label="Xoá từ khoá">
+                <AiOutlineClose />
+              </button>
+            )}
           </label>
-          <div className="max-h-[420px] overflow-y-auto pr-1">
-            {searched.isLoading ? (
-              <div className="grid grid-cols-2 gap-2">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="skeleton h-20 rounded-md" />
-                ))}
-              </div>
-            ) : searched.isError ? (
-              <p className="text-sm text-error">{getErrorMessage(searched.error, "Không tải được ảnh Unsplash.")}</p>
-            ) : searchedPhotos.length === 0 ? (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {PHOTO_CATEGORIES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`btn btn-xs font-normal ${search === c ? "btn-primary" : "btn-ghost bg-base-200"}`}
+                onClick={() => setSearch(search === c ? "" : c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="max-h-[360px] overflow-y-auto pr-1">
+            {photos.length === 0 ? (
               <p className="text-sm text-base-content/60 text-center py-6">Không tìm thấy ảnh phù hợp.</p>
             ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  {searchedPhotos.map((p) => (
-                    <UnsplashTile key={p.id} photo={p} selected={p.full === value} onPick={() => pickPhoto(p)} className="h-20" />
-                  ))}
-                </div>
-                {searched.hasNextPage && (
-                  <button
-                    type="button"
-                    className="btn btn-sm w-full mt-3"
-                    onClick={() => searched.fetchNextPage()}
-                    disabled={searched.isFetchingNextPage}
-                  >
-                    {searched.isFetchingNextPage && <span className="loading loading-spinner loading-xs" />}
-                    Tải thêm ảnh
-                  </button>
-                )}
-              </>
+              <div className="grid grid-cols-2 gap-2">
+                {photos.map((p) => (
+                  <PhotoTile key={p.id} photo={p} selected={p.url === value} onPick={() => onChange(p.url)} className="h-20" />
+                ))}
+              </div>
             )}
           </div>
+          <p className="text-[11px] text-base-content/50 mt-2 text-center">
+            Ảnh từ{" "}
+            <a href="https://unsplash.com/?utm_source=h_task&utm_medium=referral" target="_blank" rel="noreferrer" className="link">
+              Unsplash
+            </a>
+          </p>
         </AnchoredPopover>
       )}
     </div>

@@ -32,6 +32,8 @@ export const describeActivity = (a: Activity, opts: { showCard: boolean }): Reac
       return <>đã tạo bảng</>;
     case "member_added":
       return <>đã thêm <B>{d.member_name}</B> vào bảng</>;
+    case "member_removed":
+      return <>đã gỡ <B>{d.member_name}</B> khỏi bảng</>;
     case "member_invited":
       return <>đã mời <B>{d.email}</B> vào bảng</>;
     case "list_created":

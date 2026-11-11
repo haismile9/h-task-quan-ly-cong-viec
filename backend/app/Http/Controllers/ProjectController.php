@@ -47,7 +47,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'background_url' => 'nullable|string|max:500', // 🆕 validate ảnh nền
+            'background_url' => 'nullable|string|max:255', // khớp độ dài cột
             'collaborator_email' => 'nullable|email|exists:users,email'
         ], [
             'name.required' => 'Tên dự án là bắt buộc',
@@ -123,6 +123,12 @@ class ProjectController extends Controller
             return response()->json(['message' => 'Không có quyền chỉnh sửa'], 403);
         }
 
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+            'background_url' => 'nullable|string|max:255',
+        ]);
+
         $project->update($request->only(['name', 'description', 'background_url']));
 
 
@@ -152,19 +158,32 @@ class ProjectController extends Controller
         $project = Project::findOrFail($id);
         $currentUser = Auth::user();
 
-        // 🔒 Chỉ chủ sở hữu mới có quyền xoá thành viên
-        if ($currentUser->id !== $project->owner_id) {
-            return response()->json(['message' => 'Bạn không có quyền xoá thành viên'], 403);
+        // 🔒 Chủ dự án hoặc admin mới được gỡ thành viên
+        if ($currentUser->id !== $project->owner_id && $currentUser->role !== 'admin') {
+            return response()->json(['message' => 'Bạn không có quyền gỡ thành viên'], 403);
         }
 
-        // Kiểm tra xem người dùng có phải là thành viên của dự án không
-        if (!$project->users()->where('user_id', $userId)->exists()) {
+        if ((int) $userId === (int) $project->owner_id) {
+            return response()->json(['message' => 'Không thể gỡ chủ dự án'], 422);
+        }
+
+        $member = $project->users()->where('user_id', $userId)->first();
+        if (!$member) {
             return response()->json(['message' => 'Người dùng không phải là thành viên của dự án'], 404);
         }
 
-        $project->users()->detach($userId);
+        DB::transaction(function () use ($project, $member) {
+            $project->users()->detach($member->id);
+            // Giống Trello: rời bảng thì cũng rời khỏi mọi thẻ của bảng
+            DB::table('task_user')
+                ->where('user_id', $member->id)
+                ->whereIn('task_id', $project->tasks()->select('id'))
+                ->delete();
+        });
 
-        return response()->json(['message' => 'Thành viên đã được xoá'], 200);
+        Activity::record('member_removed', $project, null, ['member_id' => $member->id, 'member_name' => $member->name]);
+
+        return response()->json(['message' => "Đã gỡ {$member->name} khỏi dự án"], 200);
     }
 
 

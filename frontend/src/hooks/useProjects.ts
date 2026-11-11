@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { projectsApi, type ProjectInput } from "../api/projects";
+import { taskKeys } from "./useTasks";
 
 export const projectKeys = {
   all: ["projects"] as const,
@@ -43,6 +44,19 @@ export const useAddProjectMember = (projectId: number) => {
   return useMutation({
     mutationFn: (email: string) => projectsApi.addMember(projectId, email),
     onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) }),
+  });
+};
+
+export const useRemoveProjectMember = (projectId: number) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: number) => projectsApi.removeMember(projectId, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: projectKeys.all });
+      qc.invalidateQueries({ queryKey: taskKeys.mine });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activities"] });
+    },
   });
 };
 

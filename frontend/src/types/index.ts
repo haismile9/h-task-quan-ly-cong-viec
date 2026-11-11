@@ -118,6 +118,7 @@ export interface Comment {
 export type ActivityType =
   | "project_created"
   | "member_added"
+  | "member_removed"
   | "member_invited"
   | "list_created"
   | "list_renamed"

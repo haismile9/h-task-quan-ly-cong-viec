@@ -13,7 +13,6 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\BackgroundController;
-use App\Http\Controllers\UnsplashController;
 
 
 // 🟢 Public routes (không cần đăng nhập)
@@ -101,11 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/account/password', [AuthController::class, 'changePassword']);
     Route::put('/account/settings', [AuthController::class, 'updateSettings']);
 
-    // 🖼 Ảnh nền bảng do người dùng tải lên
+    // 🖼 Ảnh nền bảng do người dùng tải lên (ảnh Unsplash có sẵn nằm ở FE)
     Route::get('/backgrounds', [BackgroundController::class, 'index']);
     Route::post('/backgrounds', [BackgroundController::class, 'store']);
-    Route::get('/unsplash/photos', [UnsplashController::class, 'photos']);
-    Route::post('/unsplash/download', [UnsplashController::class, 'trackDownload']);
 
     // 🕘 Nhật ký hoạt động
     Route::get('/activities/me', [ActivityController::class, 'mine']);
