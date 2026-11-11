@@ -200,6 +200,10 @@ Build bản production: `npm run build` (kiểm tra kiểu TypeScript rồi buil
 
 ## Triển khai
 
+Frontend đặt trên Vercel. Backend chọn một trong hai cách:
+- **Server riêng** (Ubuntu + Docker + Nginx): backend và MySQL chạy chung bằng Docker Compose. Xem hướng dẫn ở [deploy/README.md](./deploy/README.md).
+- **Render**: chỉ chạy backend, MySQL đặt ở dịch vụ bên ngoài, như mô tả dưới đây.
+
 ### Backend trên Render (Docker)
 
 1. Tạo **Web Service** từ repo GitHub, chọn runtime **Docker**, **Root Directory** là `backend`.

@@ -18,6 +18,9 @@ RUN apt-get update \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
+# Ảnh nền tải lên tối đa 5MB (mặc định của PHP chỉ 2MB)
+RUN printf 'upload_max_filesize=6M\npost_max_size=8M\nmemory_limit=256M\nexpose_php=Off\n' > /usr/local/etc/php/conf.d/app.ini
+
 # Apache phục vụ thư mục public/ và nghe cổng $PORT do Render cấp
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \

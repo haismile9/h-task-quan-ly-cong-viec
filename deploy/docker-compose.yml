@@ -1,0 +1,44 @@
+# Backend Laravel + MySQL cho server riêng. Nginx trên máy chủ làm reverse proxy + HTTPS.
+# Chạy trong thư mục deploy/:  docker compose up -d --build
+name: htask
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"   # app không cần root
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    # Không mở cổng ra ngoài: chỉ backend trong mạng Docker kết nối được
+
+  backend:
+    build: ../backend
+    image: htask-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      # Chỉ nghe trên localhost; Nginx của máy chủ chuyển request vào đây
+      - "127.0.0.1:${BACKEND_PORT:-8081}:10000"
+    volumes:
+      - uploads:/var/www/html/storage/app/public   # ảnh nền người dùng tải lên
+
+volumes:
+  mysql-data:
+  uploads:

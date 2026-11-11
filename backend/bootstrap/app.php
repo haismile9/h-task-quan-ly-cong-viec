@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Chạy sau reverse proxy (Nginx trên server, proxy của Render): lấy IP thật và https
+        // từ X-Forwarded-*. Container chỉ nhận kết nối qua proxy nên tin mọi proxy là an toàn.
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
