@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Draggable, Droppable, type DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { AiOutlineClose, AiOutlineEllipsis, AiOutlineForm, AiOutlinePlus } from "react-icons/ai";
-import { useCreateTask, useDeleteList, useRenameList } from "../../hooks/useTasks";
+import { useCreateTask, useDeleteList, useRenameList, useUpdateTask } from "../../hooks/useTasks";
 import { useToast } from "../ui/Toast";
 import { useConfirm } from "../ui/ConfirmDialog";
 import { getErrorMessage } from "../../api/client";
@@ -50,7 +50,14 @@ const TaskColumn = ({
   const createTask = useCreateTask(projectId);
   const renameList = useRenameList(projectId);
   const deleteList = useDeleteList(projectId);
+  const updateTask = useUpdateTask(projectId);
   const toast = useToast();
+
+  const toggleDone = (task: Task) =>
+    updateTask.mutate(
+      { id: task.id, input: { status: task.status === "done" ? "pending" : "done" } },
+      { onError: (err) => toast.error(getErrorMessage(err, "Không cập nhật được trạng thái thẻ.")) }
+    );
   const confirm = useConfirm();
 
   useEffect(() => {
@@ -190,7 +197,12 @@ const TaskColumn = ({
               <Draggable key={task.id} draggableId={`task-${task.id}`} index={index} isDragDisabled={task.id < 0}>
                 {(drag, dragSnapshot) => (
                   <div ref={drag.innerRef} {...drag.draggableProps} {...drag.dragHandleProps} className="pb-2">
-                    <TaskCard task={task} onClick={() => task.id > 0 && onTaskClick(task)} isDragging={dragSnapshot.isDragging} />
+                    <TaskCard
+                      task={task}
+                      onClick={() => task.id > 0 && onTaskClick(task)}
+                      isDragging={dragSnapshot.isDragging}
+                      onToggleDone={task.id > 0 ? () => toggleDone(task) : undefined}
+                    />
                   </div>
                 )}
               </Draggable>
