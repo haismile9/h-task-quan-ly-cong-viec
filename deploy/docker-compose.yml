@@ -24,6 +24,7 @@ services:
   backend:
     build: ../backend
     image: htask-backend
+    pull_policy: build   # image được build từ code, không tải từ Docker Hub
     restart: unless-stopped
     env_file: .env
     environment:
