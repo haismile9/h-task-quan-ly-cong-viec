@@ -43,6 +43,12 @@
   --board-bg: linear-gradient(135deg, #0c66e4 0%, #1d7afc 55%, #579dff 100%);
 }
 
+/* Mục đang chọn trong menu dùng màu xanh chính */
+.menu {
+  --menu-active-bg: var(--color-primary);
+  --menu-active-fg: var(--color-primary-content);
+}
+
 body {
   @apply bg-base-100 text-base-content antialiased;
 }

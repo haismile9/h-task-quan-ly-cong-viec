@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AiOutlineClose, AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../context/AuthContext";
-import { accessControl } from "../api/utils/access";
 import Avatar from "../components/ui/Avatar";
 import ProjectForm from "../components/projects/ProjectForm";
+import { closeDropdown } from "../utils/closeDropdown";
 
 export const roleLabel: Record<string, string> = { admin: "Quản trị viên", leader: "Trưởng nhóm", member: "Thành viên" };
 
@@ -17,7 +17,8 @@ const TopNav = () => {
   const [creating, setCreating] = useState(false);
   const createRef = useRef<HTMLDivElement>(null);
 
-  const canCreate = user ? accessControl(user.role).canManageProjects : false;
+  // Backend cho mọi người dùng đã đăng nhập tạo dự án (người tạo là chủ dự án).
+  const canCreate = !!user;
 
   // Đóng khung "Tạo mới" khi bấm ra ngoài hoặc nhấn Esc
   useEffect(() => {
@@ -101,7 +102,7 @@ const TopNav = () => {
                 <p className="text-xs text-primary">{roleLabel[user.role] ?? user.role}</p>
               </div>
             </div>
-            <ul className="menu p-0 pt-1 w-full">
+            <ul className="menu p-0 pt-1 w-full" onClick={closeDropdown}>
               <li>
                 <Link to="/account">Hồ sơ và cài đặt</Link>
               </li>
