@@ -1,40 +1,32 @@
-import React from 'react';
+import type { ReactNode } from "react";
 
 interface SummaryCardProps {
   title: string;
   value: number;
   description: string;
-  icon: React.ReactElement;
-  color: 'primary' | 'success' | 'info' | 'warning' | 'error';
+  icon: ReactNode;
+  tone: "primary" | "success" | "info" | "error";
 }
 
-const SummaryCard: React.FC<SummaryCardProps> = ({
-  title,
-  value,
-  description,
-  icon,
-  color
-}) => {
-  const colorClasses = {
-    primary: 'text-primary',
-    success: 'text-success',
-    info: 'text-info',
-    warning: 'text-warning',
-    error: 'text-error'
-  };
-
-  return (
-    <div className="stats shadow bg-base-100">
-      <div className="stat">
-        <div className={`stat-figure ${colorClasses[color]}`}>
-          {React.cloneElement(icon, { className: 'text-3xl' } as any)}
-        </div>
-        <div className="stat-title">{title}</div>
-        <div className={`stat-value ${colorClasses[color]}`}>{value}</div>
-        <div className="stat-desc">{description}</div>
-      </div>
-    </div>
-  );
+const toneClass = {
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  info: "bg-info/10 text-info",
+  error: "bg-error/10 text-error",
 };
 
-export default SummaryCard; 
+/** Ô số liệu tổng quan: icon tròn màu nhạt + con số lớn. */
+const SummaryCard = ({ title, value, description, icon, tone }: SummaryCardProps) => (
+  <div className="bg-base-100 border border-base-300 rounded-box p-4 flex items-center gap-4">
+    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 ${toneClass[tone]}`}>
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <p className="text-sm text-base-content/60">{title}</p>
+      <p className="text-2xl font-bold leading-tight">{value}</p>
+      <p className="text-xs text-base-content/50 truncate">{description}</p>
+    </div>
+  </div>
+);
+
+export default SummaryCard;

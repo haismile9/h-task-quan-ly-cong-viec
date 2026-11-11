@@ -1,78 +1,51 @@
-import { createBrowserRouter } from 'react-router-dom';
-import BaseLayout from '../layout/BaseLayout';
-import Dashboard from '../pages/Dashboard';
-import ProjectList from '../pages/ProjectList';
-import ProjectDetails from '../pages/ProjectDetails';
-import NotFound from '../pages/NotFound';
-import Login from '../pages/Login';
-import Register from '../pages/Register';
-import MyTasks from '../pages/MyTasks';
-import Account from '../pages/Account';
-import VerifyEmailForm from '../components/auth/VerifyEmailForm';
-import ForgotPassword from '../pages/ForgotPassword';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import AppLayout, { SidebarLayout } from "../layout/AppLayout";
+import ProtectedRoute from "../components/ProtectedRoute";
+import Dashboard from "../pages/Dashboard";
+import ProjectList from "../pages/ProjectList";
+import ProjectDetails from "../pages/ProjectDetails";
+import MyTasks from "../pages/MyTasks";
+import Account from "../pages/Account";
+import NotFound from "../pages/NotFound";
+import Login from "../pages/Login";
+import Register from "../pages/Register";
+import ForgotPassword from "../pages/ForgotPassword";
+import VerifyEmailForm from "../components/auth/VerifyEmailForm";
 
 const router = createBrowserRouter([
-  // Public routes (không cần đăng nhập)
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path: "/verify-email",
-    element: <VerifyEmailForm />,
-  },
-  {
-    path: "/forgot-password",
-    element: <ForgotPassword />,
-  },
-  {
-    path: "/404",
-    element: <NotFound />,
-  },
-  // Protected routes (cần đăng nhập)
+  // Không cần đăng nhập
+  { path: "/login", element: <Login /> },
+  { path: "/register", element: <Register /> },
+  { path: "/verify-email", element: <VerifyEmailForm /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/404", element: <NotFound /> },
+
+  // Cần đăng nhập
   {
     path: "/",
     element: (
       <ProtectedRoute>
-        <BaseLayout />
+        <AppLayout />
       </ProtectedRoute>
     ),
     children: [
+      { index: true, element: <Navigate to="/projects" replace /> },
+      // Trang nội dung: có menu trái
       {
-        index: true, // Redirect / to dashboard
-        element: <Dashboard />,
+        element: <SidebarLayout />,
+        children: [
+          { path: "projects", element: <ProjectList /> },
+          { path: "my-task", element: <MyTasks /> },
+          { path: "dashboard", element: <Dashboard /> },
+          { path: "account", element: <Account /> },
+        ],
       },
-      {
-        path: "dashboard",
-        element: <Dashboard />,
-      },
-      {
-        path: "projects",
-        element: <ProjectList />,
-      },
-      {
-        path: "projects/:id",
-        element: <ProjectDetails />,
-      },
-      {
-        path: "my-task",
-        element: <MyTasks />,
-      },
-      {
-        path: "account",
-        element: <Account />,
-      },
+      // Trang bảng: chiếm toàn màn hình
+      { path: "projects/:id", element: <ProjectDetails /> },
     ],
   },
-  {
-    path: "*",
-    element: <NotFound />,
-  },
+
+  { path: "*", element: <NotFound /> },
 ]);
 
 export default router;

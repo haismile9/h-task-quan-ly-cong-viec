@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authApi } from "../api/auth";
 import { getErrorMessage, getFieldErrors } from "../api/client";
-import AnimatedBackground from "../components/AnimatedBackground";
-import AuthHeader from "../components/auth/AuthHeader";
 import { useAuth } from "../context/AuthContext";
-
+import AuthLayout from "../components/auth/AuthLayout";
+import FormField from "../components/ui/FormField";
+import type { FieldErrors } from "../types";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,110 +13,75 @@ const Login = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{[key: string]: string[]}>({});
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [generalError, setGeneralError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    setGeneralError("");
+    setLoading(true);
     try {
-      // Reset errors
-      setErrors({});
-      setGeneralError("");
-      
       const { token, user } = await authApi.login(email, password);
       await login(token, user);
-
       // Quay lại trang người dùng định vào trước khi bị chuyển tới /login
-      const from = location.state?.from?.pathname || "/dashboard";
-      navigate(from, { replace: true });
+      navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
     } catch (err) {
       const fieldErrors = getFieldErrors(err);
       setErrors(fieldErrors);
-      if (!Object.keys(fieldErrors).length) {
-        setGeneralError(getErrorMessage(err, "Đăng nhập thất bại"));
-      }
+      if (!Object.keys(fieldErrors).length) setGeneralError(getErrorMessage(err, "Đăng nhập thất bại"));
+    } finally {
+      setLoading(false);
     }
   };
 
-
   return (
-    <div className="relative h-screen flex justify-center items-center">
-      <AnimatedBackground />
-      
-      <div className="relative z-10 card w-96 bg-white/90 backdrop-blur-sm shadow-2xl border border-white/20 animate-fade-in-up">
-        <div className="card-body">
-          <AuthHeader 
-            title="Đăng nhập" 
-            subtitle="Chào mừng bạn quay trở lại!"
-          />
-
-          <div className="form-control mb-4">
-            <input
-              type="email"
-              placeholder="Email"
-              className={`input input-bordered w-full bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.email ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            {errors.email && (
-              <div className="text-red-500 text-sm mt-1">
-                {errors.email.map((error, index) => (
-                  <div key={index}>{error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="form-control mb-4">
-            <input
-              type="password"
-              placeholder="Mật khẩu"
-              className={`input input-bordered w-full bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.password ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {errors.password && (
-              <div className="text-red-500 text-sm mt-1">
-                {errors.password.map((error, index) => (
-                  <div key={index}>{error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {location.state?.message && !generalError && (
-            <div className="alert alert-success mb-4">
-              <span>{location.state.message}</span>
-            </div>
-          )}
-
-          {generalError && (
-            <div className="alert alert-error mb-4 bg-red-50 border-red-200 text-red-700">
-              <span>{generalError}</span>
-            </div>
-          )}
-
-          <button 
-            onClick={handleLogin} 
-            className="btn w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-none shadow-lg transform hover:scale-105 transition-all duration-200"
-          >
-            Đăng nhập
-          </button>
-
-          <p className="text-sm mt-2 text-center">
-            <a href="/forgot-password" className="link text-blue-600 hover:text-cyan-600 font-semibold">
-              Quên mật khẩu?
-            </a>
-          </p>
-
-          <p className="text-sm mt-2 text-center text-gray-600">
-            Chưa có tài khoản?{" "}
-            <a href="/register" className="link text-blue-600 hover:text-cyan-600 font-semibold">
-              Đăng ký
-            </a>
-          </p>
+    <AuthLayout
+      title="Đăng nhập"
+      subtitle="Chào mừng bạn quay trở lại!"
+      footer={
+        <>
+          Chưa có tài khoản?{" "}
+          <Link to="/register" className="link link-primary font-semibold">
+            Đăng ký
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleLogin} className="space-y-4">
+        {location.state?.message && !generalError && (
+          <div className="alert alert-success text-sm">{location.state.message}</div>
+        )}
+        <FormField
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          errors={errors.email}
+          autoFocus
+        />
+        <FormField
+          label="Mật khẩu"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          errors={errors.password}
+        />
+        <div className="text-right -mt-2">
+          <Link to="/forgot-password" className="link link-primary text-xs">
+            Quên mật khẩu?
+          </Link>
         </div>
-      </div>
-    </div>
+        {generalError && <div className="alert alert-error text-sm">{generalError}</div>}
+        <button type="submit" className="btn btn-primary w-full" disabled={loading || !email || !password}>
+          {loading && <span className="loading loading-spinner loading-sm" />}
+          Đăng nhập
+        </button>
+      </form>
+    </AuthLayout>
   );
 };
 

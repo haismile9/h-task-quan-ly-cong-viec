@@ -6,21 +6,22 @@ import { useToast } from "../ui/Toast";
 import { getErrorMessage } from "../../api/client";
 import { useCreateTask, useDeleteTask, useUpdateTask } from "../../hooks/useTasks";
 import type { ProjectMember, Task, TaskPriority, TaskStatus } from "../../types";
-import { TASK_STATUSES, priorityLabel, statusLabel } from "./taskMeta";
+import Avatar from "../ui/Avatar";
+import { PRIORITIES, TASK_STATUSES, priorityLabel, statusLabel } from "./taskMeta";
 
 interface TaskFormModalProps {
   projectId: number;
   members: ProjectMember[];
   /** Có task → chế độ sửa; không có → tạo mới. */
   task?: Task;
+  /** Cột được chọn khi bấm "Thêm thẻ". */
+  initialStatus?: TaskStatus;
   /** Backend chỉ cho admin hoặc chủ dự án gán người thực hiện. */
   canAssign: boolean;
   onClose: () => void;
 }
 
-const PRIORITIES: TaskPriority[] = ["low", "medium", "high"];
-
-const TaskFormModal = ({ projectId, members, task, canAssign, onClose }: TaskFormModalProps) => {
+const TaskFormModal = ({ projectId, members, task, initialStatus, canAssign, onClose }: TaskFormModalProps) => {
   const isEdit = !!task;
   const toast = useToast();
   const confirm = useConfirm();
@@ -31,7 +32,7 @@ const TaskFormModal = ({ projectId, members, task, canAssign, onClose }: TaskFor
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [deadline, setDeadline] = useState(task?.deadline?.slice(0, 10) ?? "");
-  const [status, setStatus] = useState<TaskStatus>(task?.status ?? "pending");
+  const [status, setStatus] = useState<TaskStatus>(task?.status ?? initialStatus ?? "pending");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? "medium");
   const [assigneeIds, setAssigneeIds] = useState<number[]>(task?.assigned_users?.map((u) => u.id) ?? []);
   const [error, setError] = useState("");
@@ -164,6 +165,7 @@ const TaskFormModal = ({ projectId, members, task, canAssign, onClose }: TaskFor
                   disabled={!canAssign}
                   onChange={(e) => toggleAssignee(m.id, e.target.checked)}
                 />
+                <Avatar name={m.name} size="xs" />
                 {m.name} <span className="text-base-content/50">({m.email})</span>
               </label>
             ))}

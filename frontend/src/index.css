@@ -2,70 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom input styling for better text contrast */
+/*
+ * Theme "htask": trắng + xanh dương, phong cách bảng Kanban.
+ * Ghi đè biến màu của daisyUI; được bật bằng data-theme="htask" trên <html>,
+ * nên giao diện luôn sáng kể cả khi hệ điều hành bật dark mode.
+ */
+:root[data-theme="htask"] {
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f1f2f4; /* nền cột, nền trang phụ */
+  --color-base-300: #dcdfe4; /* viền, hover */
+  --color-base-content: #172b4d; /* chữ chính (xanh than) */
+
+  --color-primary: #0c66e4;
+  --color-primary-content: #ffffff;
+  --color-secondary: #1d7afc;
+  --color-secondary-content: #ffffff;
+  --color-accent: #579dff;
+  --color-accent-content: #09326c;
+  --color-neutral: #44546f;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #1d7afc;
+  --color-info-content: #ffffff;
+  --color-success: #22a06b;
+  --color-success-content: #ffffff;
+  --color-warning: #f5cd47;
+  --color-warning-content: #172b4d;
+  --color-error: #c9372c;
+  --color-error-content: #ffffff;
+
+  --radius-box: 0.75rem;
+  --radius-field: 0.5rem;
+  --radius-selector: 0.375rem;
+  --depth: 0;
+  --noise: 0;
+
+  /* Màu riêng của app */
+  --board-bg: linear-gradient(135deg, #0c66e4 0%, #1d7afc 55%, #579dff 100%);
+}
+
+body {
+  @apply bg-base-100 text-base-content antialiased;
+}
+
 @layer components {
-  .input {
-    @apply text-gray-900;
+  /* Viền xanh chính khi ô nhập được chọn */
+  .input:focus,
+  .input:focus-within,
+  .textarea:focus,
+  .select:focus {
+    outline-color: var(--color-primary);
+    border-color: var(--color-primary);
   }
-  
-  .input::placeholder {
-    @apply text-gray-500;
-  }
-  
-  .input:focus {
-    @apply text-gray-900 bg-white;
-  }
-  
-  /* Ensure DaisyUI doesn't override our text colors */
-  .input[data-theme] {
-    @apply text-gray-900;
-  }
-  
-  /* Better button contrast for auth pages */
-  .btn-primary-auth {
-    @apply bg-blue-600 border-blue-600 text-white font-semibold;
-  }
-  
-  .btn-primary-auth:hover {
-    @apply bg-blue-700 border-blue-700;
-  }
-  
-  .btn-secondary-auth {
-    @apply bg-white/10 border border-white/30 text-white font-medium;
-  }
-  
-  .btn-secondary-auth:hover {
-    @apply bg-white/20 border-white/50;
-  }
-  
-  .btn-link-auth {
-    @apply text-blue-200 no-underline font-medium;
-  }
-  
-  .btn-link-auth:hover {
-    @apply text-white underline;
-  }
-}
 
-/* Custom animations for 404 page */
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 0.5;
+  /* Nền xanh của trang bảng công việc và trang đăng nhập */
+  .bg-board {
+    background: var(--board-bg);
   }
-  50% {
-    opacity: 1;
+
+  /* Thanh cuộn ngang mảnh cho bảng Kanban */
+  .board-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.5) transparent;
   }
-}
+  .board-scroll::-webkit-scrollbar {
+    height: 10px;
+  }
+  .board-scroll::-webkit-scrollbar-thumb {
+    background: rgb(255 255 255 / 0.5);
+    border-radius: 9999px;
+  }
 
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
-}
-
-/* Override default pulse to be slower */
-.animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* Cuộn dọc trong cột */
+  .column-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(9 30 66 / 0.25) transparent;
+  }
 }

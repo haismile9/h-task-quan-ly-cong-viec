@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { authApi } from "../../api/auth";
 import { getErrorMessage } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import AuthLayout from "./AuthLayout";
 
 const VerifyEmailForm = () => {
   const navigate = useNavigate();
@@ -13,18 +14,23 @@ const VerifyEmailForm = () => {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   if (!email) return <Navigate to="/register" replace />;
 
-  const handleVerify = async () => {
+  const handleVerify = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      setError("");
       const { token, user } = await authApi.verifyEmail(email, code.trim());
       await login(token, user);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setSuccess("");
       setError(getErrorMessage(err, "Xác minh thất bại."));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,36 +46,41 @@ const VerifyEmailForm = () => {
   };
 
   return (
-    <div className="h-screen flex justify-center items-center bg-base-200">
-      <div className="card w-96 bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">🔐 Xác minh Email</h2>
-
-          <input
-            value={email}
-            disabled
-            className="input input-bordered mb-2 bg-gray-100"
-          />
-
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Nhập mã xác minh"
-            className="input input-bordered mb-2"
-          />
-
-          {error && <p className="text-error text-sm">{error}</p>}
-          {success && <p className="text-success text-sm">{success}</p>}
-
-          <button className="btn btn-primary w-full" onClick={handleVerify}>
-            Xác minh
-          </button>
-          <button className="btn btn-link mt-2" onClick={handleResend}>
-            Gửi lại mã
-          </button>
-        </div>
-      </div>
-    </div>
+    <AuthLayout
+      title="Xác minh email"
+      subtitle={
+        <>
+          Nhập mã đã gửi tới <span className="font-semibold text-base-content">{email}</span>
+        </>
+      }
+      footer={
+        <Link to="/register" className="link link-primary">
+          Dùng email khác
+        </Link>
+      }
+    >
+      <form onSubmit={handleVerify} className="space-y-4">
+        <input
+          className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
+          placeholder="••••••"
+          inputMode="numeric"
+          maxLength={6}
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+          aria-label="Mã xác minh"
+          autoFocus
+        />
+        {error && <div className="alert alert-error text-sm">{error}</div>}
+        {success && <div className="alert alert-success text-sm">{success}</div>}
+        <button type="submit" className="btn btn-primary w-full" disabled={loading || !code}>
+          {loading && <span className="loading loading-spinner loading-sm" />}
+          Xác minh
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm w-full" onClick={handleResend}>
+          Gửi lại mã
+        </button>
+      </form>
+    </AuthLayout>
   );
 };
 

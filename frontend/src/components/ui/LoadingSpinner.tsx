@@ -7,7 +7,7 @@ interface LoadingSpinnerProps {
 }
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  message = 'Loading...', 
+  message = 'Đang tải...', 
   size = 'lg',
   fullScreen = false 
 }) => {

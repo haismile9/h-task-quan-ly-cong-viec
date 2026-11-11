@@ -1,27 +1,38 @@
 import { useMemo, useState } from "react";
 import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
-import { AiOutlinePlus, AiOutlineUserAdd } from "react-icons/ai";
+import { AiOutlineEdit, AiOutlineUserAdd } from "react-icons/ai";
 import { useProjectTasks, useUpdateTask } from "../../hooks/useTasks";
-import { useToast } from "../ui/Toast";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../ui/Toast";
+import Avatar from "../ui/Avatar";
 import { getErrorMessage } from "../../api/client";
 import AddMemberModal from "../projects/AddMemberModal";
+import CreateProjectModal from "../projects/CreateProjectModal";
 import type { Project, Task, TaskStatus } from "../../types";
 import TaskColumn from "./TaskColumn";
 import TaskFormModal from "./TaskFormModal";
 import { TASK_STATUSES } from "./taskMeta";
 
-/** Modal đang mở: thêm task, sửa một task, hoặc thêm thành viên. */
-type OpenModal = { type: "create" } | { type: "edit"; task: Task } | { type: "member" } | null;
+/** Modal đang mở: thêm thẻ vào một cột, sửa thẻ, thêm thành viên, sửa dự án. */
+type OpenModal =
+  | { type: "create"; status: TaskStatus }
+  | { type: "edit"; task: Task }
+  | { type: "member" }
+  | { type: "editProject" }
+  | null;
 
+/** Bảng Kanban toàn màn hình: thanh tiêu đề bảng + các cột cuộn ngang trên nền xanh. */
 const TaskBoard = ({ project }: { project: Project }) => {
   const { data: tasks = [], isLoading, error } = useProjectTasks(project.id);
   const updateTask = useUpdateTask(project.id);
+  const { user } = useAuth();
   const toast = useToast();
   const [modal, setModal] = useState<OpenModal>(null);
-  const { user } = useAuth();
+
   const members = project.users ?? [];
-  const canAssign = user?.role === "admin" || user?.id === project.owner_id;
+  // Backend chỉ cho admin hoặc chủ dự án gán người, sửa và xoá dự án.
+  const isManager = user?.role === "admin" || user?.id === project.owner_id;
+  const canAssign = isManager;
 
   const columns = useMemo(() => {
     const grouped: Record<TaskStatus, Task[]> = { pending: [], in_progress: [], done: [] };
@@ -37,48 +48,67 @@ const TaskBoard = ({ project }: { project: Project }) => {
     );
   };
 
-  if (isLoading) return <div className="p-4 text-center"><span className="loading loading-spinner" /></div>;
-  if (error) return <div className="alert alert-error">{getErrorMessage(error, "Không thể tải nhiệm vụ.")}</div>;
-
   return (
-    <div className="mt-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Bảng công việc</h2>
-        <div className="flex gap-2">
-          <button className="btn btn-sm btn-outline" onClick={() => setModal({ type: "member" })}>
-            <AiOutlineUserAdd /> Thành viên
+    <>
+      {/* Thanh tiêu đề bảng */}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-black/25 text-white backdrop-blur-sm">
+        <h1 className="text-lg font-bold truncate px-1">{project.name}</h1>
+        {isManager && (
+          <button
+            className="btn btn-ghost btn-xs btn-square text-white hover:bg-white/20"
+            onClick={() => setModal({ type: "editProject" })}
+            aria-label="Sửa dự án"
+            title="Sửa dự án"
+          >
+            <AiOutlineEdit />
           </button>
-          <button className="btn btn-sm btn-primary" onClick={() => setModal({ type: "create" })}>
-            <AiOutlinePlus /> Thêm nhiệm vụ
-          </button>
+        )}
+        {project.description && (
+          <p className="hidden lg:block text-sm text-white/80 truncate max-w-md">{project.description}</p>
+        )}
+        <div className="flex-1" />
+        <div className="flex -space-x-2" aria-label="Thành viên dự án">
+          {members.slice(0, 6).map((m) => (
+            <Avatar key={m.id} name={m.name} size="sm" className="ring-2 ring-white/70" />
+          ))}
+          {members.length > 6 && (
+            <span className="w-8 h-8 rounded-full bg-white/30 text-xs font-semibold inline-flex items-center justify-center ring-2 ring-white/70">
+              +{members.length - 6}
+            </span>
+          )}
         </div>
+        <button
+          className="btn btn-sm border-none bg-base-100/90 text-base-content hover:bg-base-100"
+          onClick={() => setModal({ type: "member" })}
+        >
+          <AiOutlineUserAdd /> Chia sẻ
+        </button>
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {TASK_STATUSES.map((status) => (
-            <TaskColumn
-              key={status}
-              status={status}
-              tasks={columns[status]}
-              onTaskClick={(task) => setModal({ type: "edit", task })}
-            />
-          ))}
-        </div>
-      </DragDropContext>
-
-      <div className="mt-6">
-        <h3 className="font-semibold text-sm mb-2">👥 Thành viên ({members.length})</h3>
-        {members.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {members.map((m) => (
-              <span key={m.id} className="badge badge-outline" title={m.email}>
-                {m.name}
-              </span>
-            ))}
+      {/* Các cột */}
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden board-scroll">
+        {isLoading ? (
+          <div className="p-6 text-white flex items-center gap-2">
+            <span className="loading loading-spinner" /> Đang tải nhiệm vụ...
+          </div>
+        ) : error ? (
+          <div className="p-4">
+            <div className="alert alert-error max-w-md">{getErrorMessage(error, "Không thể tải nhiệm vụ.")}</div>
           </div>
         ) : (
-          <p className="text-sm italic text-base-content/50">Chưa có thành viên nào.</p>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="h-full flex items-start gap-3 p-3">
+              {TASK_STATUSES.map((status) => (
+                <TaskColumn
+                  key={status}
+                  status={status}
+                  tasks={columns[status]}
+                  onTaskClick={(task) => setModal({ type: "edit", task })}
+                  onAddTask={(s) => setModal({ type: "create", status: s })}
+                />
+              ))}
+            </div>
+          </DragDropContext>
         )}
       </div>
 
@@ -88,11 +118,13 @@ const TaskBoard = ({ project }: { project: Project }) => {
           members={members}
           canAssign={canAssign}
           task={modal.type === "edit" ? modal.task : undefined}
+          initialStatus={modal.type === "create" ? modal.status : undefined}
           onClose={() => setModal(null)}
         />
       )}
       {modal?.type === "member" && <AddMemberModal projectId={project.id} onClose={() => setModal(null)} />}
-    </div>
+      {modal?.type === "editProject" && <CreateProjectModal project={project} onClose={() => setModal(null)} />}
+    </>
   );
 };
 

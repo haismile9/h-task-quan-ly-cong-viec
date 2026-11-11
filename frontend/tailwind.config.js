@@ -1,7 +1,33 @@
+/** Màu từ biến CSS của daisyUI, hỗ trợ <alpha-value> (bg-primary/10, text-base-content/60...). */
+const themeColor = (name) => `color-mix(in oklab, var(--color-${name}) calc(<alpha-value> * 100%), transparent)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      // Màu theme daisyUI 5 (biến CSS) để Tailwind 3 hiểu được modifier độ trong suốt như bg-primary/10
+      colors: {
+        'base-100': themeColor('base-100'),
+        'base-200': themeColor('base-200'),
+        'base-300': themeColor('base-300'),
+        'base-content': themeColor('base-content'),
+        'primary': themeColor('primary'),
+        'primary-content': themeColor('primary-content'),
+        'secondary': themeColor('secondary'),
+        'secondary-content': themeColor('secondary-content'),
+        'accent': themeColor('accent'),
+        'accent-content': themeColor('accent-content'),
+        'neutral': themeColor('neutral'),
+        'neutral-content': themeColor('neutral-content'),
+        'info': themeColor('info'),
+        'info-content': themeColor('info-content'),
+        'success': themeColor('success'),
+        'success-content': themeColor('success-content'),
+        'warning': themeColor('warning'),
+        'warning-content': themeColor('warning-content'),
+        'error': themeColor('error'),
+        'error-content': themeColor('error-content'),
+      },
       animation: {
         'scroll-right': 'scrollRight 30s linear infinite',
         'scroll-left': 'scrollLeft 25s linear infinite',
@@ -46,14 +72,6 @@ export default {
           },
         },
       },
-      colors: {
-        primary: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-        }
-      }
     },
   },
   plugins: [

@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../api/auth";
 import { getErrorMessage, getFieldErrors } from "../api/client";
-import AnimatedBackground from "../components/AnimatedBackground";
-import AuthHeader from "../components/auth/AuthHeader";
+import AuthLayout from "../components/auth/AuthLayout";
+import FormField from "../components/ui/FormField";
+import type { FieldErrors } from "../types";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -11,7 +12,7 @@ const ForgotPassword = () => {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [errors, setErrors] = useState<{[key: string]: string[]}>({});
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 phút = 600 giây
@@ -111,179 +112,134 @@ const ForgotPassword = () => {
     }
   };
 
-  const renderStep1 = () => (
-    <>
-      <AuthHeader 
-        title="Quên mật khẩu" 
-        subtitle="Nhập email để nhận mã reset mật khẩu"
-      />
+  /** Bọc handler để form gửi được bằng phím Enter. */
+  const submit = (handler: () => void) => (e: FormEvent) => {
+    e.preventDefault();
+    handler();
+  };
 
-      <div className="form-control mb-4">
-        <input
-          type="email"
-          placeholder="Email"
-          className={`input input-bordered w-full bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.email ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        {errors.email && (
-          <div className="text-red-500 text-sm mt-1">
-            {errors.email.map((error, index) => (
-              <div key={index}>{error}</div>
-            ))}
-          </div>
-        )}
-      </div>
+  const errorAlert = generalError && <div className="alert alert-error text-sm">{generalError}</div>;
 
-      {generalError && (
-        <div className="alert alert-error mb-4 bg-red-50 border-red-200 text-red-700">
-          <span>{generalError}</span>
-        </div>
-      )}
-
-      <button 
-        onClick={handleSendCode}
-        disabled={loading}
-        className="btn w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-none shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50"
-      >
-        {loading ? "Đang gửi..." : "Gửi mã reset"}
-      </button>
-    </>
-  );
-
-  const renderStep2 = () => (
-    <>
-      <AuthHeader 
-        title="Xác thực mã" 
-        subtitle={`Mã xác thực đã được gửi đến ${email}`}
-      />
-
-      {timeLeft > 0 && (
-        <div className="text-center mb-3">
-          <span className="text-sm text-gray-600">
-            Mã sẽ hết hạn sau: <span className="font-bold text-blue-600">{formatTime(timeLeft)}</span>
-          </span>
-        </div>
-      )}
-
-      <div className="form-control mb-4">
-        <input
-          type="text"
-          placeholder="Nhập mã 6 chữ số"
-          className="input input-bordered w-full bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:bg-white text-center text-2xl tracking-widest"
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
-          maxLength={6}
-        />
-      </div>
-
-      {generalError && (
-        <div className="alert alert-error mb-4 bg-red-50 border-red-200 text-red-700">
-          <span>{generalError}</span>
-        </div>
-      )}
-
-      <button 
-        onClick={handleVerifyCode}
-        disabled={loading || code.length !== 6}
-        className="btn w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-none shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 mb-3"
-      >
-        {loading ? "Đang xác thực..." : "Xác thực mã"}
-      </button>
-
-      <div className="flex justify-between gap-3 mb-3">
-        <button 
-          onClick={() => setStep(1)}
-          className="flex-1 bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-4 rounded-lg border border-white/30 transition-colors duration-200"
-        >
-          ← Quay lại
-        </button>
-        
-        {timeLeft === 0 ? (
-          <button 
-            onClick={handleResendCode}
-            disabled={loading}
-            className="flex-1 bg-blue-500/80 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg border border-blue-400 transition-colors duration-200 disabled:opacity-50"
-          >
-            {loading ? "Đang gửi..." : "Gửi lại mã"}
+  const steps = {
+    1: {
+      title: "Quên mật khẩu",
+      subtitle: "Nhập email để nhận mã đặt lại mật khẩu",
+      body: (
+        <form onSubmit={submit(handleSendCode)} className="space-y-4">
+          <FormField
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            errors={errors.email}
+            autoFocus
+          />
+          {errorAlert}
+          <button type="submit" className="btn btn-primary w-full" disabled={loading || !email}>
+            {loading && <span className="loading loading-spinner loading-sm" />}
+            Gửi mã
           </button>
-        ) : (
-          <div className="flex-1 bg-gray-500/50 text-white/70 font-medium py-2 px-4 rounded-lg border border-gray-400/50 text-center">
-            Gửi lại sau {timeLeft}s
+        </form>
+      ),
+    },
+    2: {
+      title: "Nhập mã xác thực",
+      subtitle: (
+        <>
+          Mã đã được gửi tới <span className="font-semibold text-base-content">{email}</span>
+        </>
+      ),
+      body: (
+        <form onSubmit={submit(handleVerifyCode)} className="space-y-4">
+          <input
+            className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
+            placeholder="••••••"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            aria-label="Mã xác thực"
+            autoFocus
+          />
+          <p className="text-xs text-center text-base-content/60">
+            {timeLeft > 0 ? (
+              <>
+                Mã hết hạn sau <span className="font-semibold text-primary">{formatTime(timeLeft)}</span>
+              </>
+            ) : (
+              "Mã đã hết hạn, hãy gửi lại mã mới."
+            )}
+          </p>
+          {errorAlert}
+          <button type="submit" className="btn btn-primary w-full" disabled={loading || code.length !== 6}>
+            {loading && <span className="loading loading-spinner loading-sm" />}
+            Xác thực mã
+          </button>
+          <div className="flex gap-2">
+            <button type="button" className="btn btn-ghost btn-sm flex-1" onClick={() => setStep(1)}>
+              ← Đổi email
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm flex-1"
+              onClick={handleResendCode}
+              disabled={loading || timeLeft > 0}
+            >
+              Gửi lại mã
+            </button>
           </div>
-        )}
-      </div>
-    </>
-  );
-
-  const renderStep3 = () => (
-    <>
-      <AuthHeader 
-        title="Đặt mật khẩu mới" 
-        subtitle="Nhập mật khẩu mới cho tài khoản của bạn"
-      />
-
-      <div className="form-control mb-4">
-        <input
-          type="password"
-          placeholder="Mật khẩu mới"
-          className={`input input-bordered w-full bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.password ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {errors.password && (
-          <div className="text-red-500 text-sm mt-1">
-            {errors.password.map((error, index) => (
-              <div key={index}>{error}</div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="form-control mb-4">
-        <input
-          type="password"
-          placeholder="Xác nhận mật khẩu mới"
-          className="input input-bordered w-full bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:bg-white"
-          value={passwordConfirmation}
-          onChange={(e) => setPasswordConfirmation(e.target.value)}
-        />
-      </div>
-
-      {generalError && (
-        <div className="alert alert-error mb-4 bg-red-50 border-red-200 text-red-700">
-          <span>{generalError}</span>
-        </div>
-      )}
-
-      <button 
-        onClick={handleResetPassword}
-        disabled={loading}
-        className="btn w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-none shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50"
-      >
-        {loading ? "Đang đặt lại..." : "Đặt lại mật khẩu"}
-      </button>
-    </>
-  );
+        </form>
+      ),
+    },
+    3: {
+      title: "Đặt mật khẩu mới",
+      subtitle: "Nhập mật khẩu mới cho tài khoản của bạn",
+      body: (
+        <form onSubmit={submit(handleResetPassword)} className="space-y-4">
+          <FormField
+            label="Mật khẩu mới"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            errors={errors.password}
+            autoFocus
+          />
+          <FormField
+            label="Xác nhận mật khẩu mới"
+            type="password"
+            autoComplete="new-password"
+            value={passwordConfirmation}
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+          />
+          {errorAlert}
+          <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+            {loading && <span className="loading loading-spinner loading-sm" />}
+            Đặt lại mật khẩu
+          </button>
+        </form>
+      ),
+    },
+  }[step as 1 | 2 | 3];
 
   return (
-    <div className="relative h-screen flex justify-center items-center">
-      <AnimatedBackground />
-      
-      <div className="relative z-10 card w-96 bg-white/90 backdrop-blur-sm shadow-2xl border border-white/20 animate-fade-in-up">
-        <div className="card-body">
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-
-          <p className="text-sm mt-4 text-center text-gray-600">
-            <a href="/" className="link text-blue-600 hover:text-cyan-600 font-semibold">
-              Quay lại đăng nhập
-            </a>
-          </p>
-        </div>
-      </div>
-    </div>
+    <AuthLayout
+      title={steps.title}
+      subtitle={steps.subtitle}
+      footer={
+        <Link to="/login" className="link link-primary">
+          Quay lại đăng nhập
+        </Link>
+      }
+    >
+      <ul className="steps steps-horizontal w-full text-xs mb-6">
+        <li className={`step ${step >= 1 ? "step-primary" : ""}`}>Email</li>
+        <li className={`step ${step >= 2 ? "step-primary" : ""}`}>Mã</li>
+        <li className={`step ${step >= 3 ? "step-primary" : ""}`}>Mật khẩu</li>
+      </ul>
+      {steps.body}
+    </AuthLayout>
   );
 };
 

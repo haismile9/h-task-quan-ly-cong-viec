@@ -1,53 +1,85 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
+import { AiOutlineCheckSquare, AiOutlineClockCircle } from "react-icons/ai";
 import { useMyTasks } from "../hooks/useTasks";
+import Page from "../components/ui/Page";
+import EmptyState from "../components/ui/EmptyState";
+import { deadlineChipClass, deadlineState, priorityColor, priorityLabel, statusBadgeClass, statusLabel, TASK_STATUSES } from "../components/tasks/taskMeta";
 import type { TaskStatus } from "../types";
 
-const statusStyle: Record<TaskStatus, string> = {
-  pending: "badge badge-warning text-xs",
-  in_progress: "badge badge-info text-xs",
-  done: "badge badge-success text-xs",
-};
-
-const statusLabel: Record<TaskStatus, string> = {
-  pending: "Chờ làm",
-  in_progress: "Đang làm",
-  done: "Hoàn thành",
-};
+type Filter = TaskStatus | "all";
 
 const MyTasks = () => {
   const { data: tasks = [], isLoading } = useMyTasks();
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const visible = useMemo(() => {
+    const list = filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
+    // Việc chưa xong, hạn gần nhất lên trước
+    return [...list].sort((a, b) => {
+      if ((a.status === "done") !== (b.status === "done")) return a.status === "done" ? 1 : -1;
+      return (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999");
+    });
+  }, [tasks, filter]);
+
+  const count = (s: Filter) => (s === "all" ? tasks.length : tasks.filter((t) => t.status === s).length);
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">📌 Công việc của tôi</h2>
+    <Page title="Công việc của tôi" subtitle="Các nhiệm vụ được giao cho bạn ở mọi dự án.">
+      <div role="tablist" className="tabs tabs-box w-fit mb-4">
+        {(["all", ...TASK_STATUSES] as Filter[]).map((f) => (
+          <button
+            key={f}
+            role="tab"
+            className={`tab ${filter === f ? "tab-active" : ""}`}
+            onClick={() => setFilter(f)}
+          >
+            {f === "all" ? "Tất cả" : statusLabel[f]} ({count(f)})
+          </button>
+        ))}
+      </div>
 
       {isLoading ? (
-        <div className="text-center">Đang tải...</div>
-      ) : tasks.length === 0 ? (
-        <div className="text-gray-400 italic">Không có công việc nào được giao.</div>
-      ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          {tasks.map((task) => (
-            <Link
-              key={task.id}
-              to={`/projects/${task.project_id}`}
-              className="bg-base-200 p-4 rounded shadow hover:bg-base-300 transition block"
-            >
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-lg">{task.title}</h3>
-                <span className={statusStyle[task.status]}>{statusLabel[task.status]}</span>
-              </div>
-              <p className="text-sm text-gray-500 mb-2">{task.description || "Không có mô tả"}</p>
-              <p className="text-xs text-gray-400">
-                📁 {task.project_name} · 🗓 Hạn:{" "}
-                {task.deadline ? dayjs(task.deadline).format("DD/MM/YYYY") : "Không rõ"}
-              </p>
-            </Link>
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skeleton h-16 rounded-box" />
           ))}
         </div>
+      ) : visible.length === 0 ? (
+        <EmptyState icon={<AiOutlineCheckSquare />} title="Không có công việc nào" />
+      ) : (
+        <ul className="bg-base-100 border border-base-300 rounded-box divide-y divide-base-300">
+          {visible.map((task) => {
+            const deadline = deadlineState(task);
+            return (
+              <li key={task.id}>
+                <Link to={`/projects/${task.project_id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-base-200 transition">
+                  <span
+                    className="w-1.5 self-stretch rounded-full shrink-0"
+                    style={{ backgroundColor: priorityColor[task.priority] }}
+                    title={`Độ ưu tiên: ${priorityLabel[task.priority]}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${task.status === "done" ? "line-through text-base-content/50" : ""}`}>
+                      {task.title}
+                    </p>
+                    <p className="text-xs text-base-content/60 truncate">{task.project_name}</p>
+                  </div>
+                  {deadline && (
+                    <span className={`hidden sm:inline-flex items-center gap-1 text-xs rounded px-1.5 py-0.5 ${deadlineChipClass[deadline]}`}>
+                      <AiOutlineClockCircle />
+                      {dayjs(task.deadline).format("DD/MM/YYYY")}
+                    </span>
+                  )}
+                  <span className={`badge badge-sm ${statusBadgeClass[task.status]}`}>{statusLabel[task.status]}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </div>
+    </Page>
   );
 };
 

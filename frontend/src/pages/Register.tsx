@@ -1,130 +1,78 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../api/auth";
 import { getErrorMessage, getFieldErrors } from "../api/client";
-import { useNavigate } from "react-router-dom";
-import AnimatedBackground from "../components/AnimatedBackground";
-import AuthHeader from "../components/auth/AuthHeader";
+import AuthLayout from "../components/auth/AuthLayout";
+import FormField from "../components/ui/FormField";
+import type { FieldErrors } from "../types";
 
 const Register = () => {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{[key: string]: string[]}>({});
-  const [generalError, setGeneralError] = useState("");
-  const navigate = useNavigate();
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [generalError, setGeneralError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
+  const handleRegister = async (e: FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    setGeneralError("");
+    setLoading(true);
     try {
-      // Reset errors
-      setErrors({});
-      setGeneralError("");
-      
       await authApi.register({ name, email, password, password_confirmation: passwordConfirmation });
-
       // Backend đã lưu thông tin chờ xác minh; trang xác minh chỉ cần email.
       navigate("/verify-email", { state: { email } });
     } catch (err) {
       const fieldErrors = getFieldErrors(err);
       setErrors(fieldErrors);
-      if (!Object.keys(fieldErrors).length) {
-        setGeneralError(getErrorMessage(err, "Đăng ký thất bại"));
-      }
+      if (!Object.keys(fieldErrors).length) setGeneralError(getErrorMessage(err, "Đăng ký thất bại"));
+    } finally {
+      setLoading(false);
     }
   };
 
-
   return (
-    <div className="relative h-screen flex justify-center items-center">
-      <AnimatedBackground />
-      
-      <div className="relative z-10 card w-96 bg-white/90 backdrop-blur-sm shadow-2xl border border-white/20 animate-fade-in-up">
-        <div className="card-body">
-          <AuthHeader 
-            title="Đăng ký tài khoản" 
-            subtitle="Tham gia cùng chúng tôi ngay hôm nay!"
-          />
-
-          <div className="form-control mb-4">
-            <input 
-              type="text" 
-              placeholder="Họ tên" 
-              className={`input input-bordered bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.name ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-            />
-            {errors.name && (
-              <div className="text-red-500 text-sm mt-1">
-                {errors.name.map((error, index) => (
-                  <div key={index}>{error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="form-control mb-4">
-            <input 
-              type="email" 
-              placeholder="Email" 
-              className={`input input-bordered bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.email ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-            />
-            {errors.email && (
-              <div className="text-red-500 text-sm mt-1">
-                {errors.email.map((error, index) => (
-                  <div key={index}>{error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="form-control mb-4">
-            <input 
-              type="password" 
-              placeholder="Mật khẩu" 
-              className={`input input-bordered bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 ${errors.password ? 'input-error border-red-500' : 'border-gray-300 focus:border-blue-500 focus:bg-white'}`}
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-            />
-            {errors.password && (
-              <div className="text-red-500 text-sm mt-1">
-                {errors.password.map((error, index) => (
-                  <div key={index}>{error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="form-control mb-4">
-            <input 
-              type="password" 
-              placeholder="Xác nhận mật khẩu" 
-              className="input input-bordered bg-white/90 backdrop-blur-sm text-gray-900 placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:bg-white"
-              value={passwordConfirmation} 
-              onChange={(e) => setPasswordConfirmation(e.target.value)}
-            />
-          </div>
-
-          {generalError && (
-            <div className="alert alert-error mb-4 bg-red-50 border-red-200 text-red-700">
-              <span>{generalError}</span>
-            </div>
-          )}
-
-          <button 
-            className="btn w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-none shadow-lg transform hover:scale-105 transition-all duration-200" 
-            onClick={handleRegister}
-          >
-            Đăng ký
-          </button>
-
-          <p className="text-sm mt-4 text-center text-gray-600">
-            Đã có tài khoản? <a href="/" className="link text-blue-600 hover:text-cyan-600 font-semibold">Đăng nhập</a>
-          </p>
-        </div>
-      </div>
-    </div>
+    <AuthLayout
+      title="Tạo tài khoản"
+      subtitle="Bắt đầu quản lý công việc cùng nhóm của bạn"
+      footer={
+        <>
+          Đã có tài khoản?{" "}
+          <Link to="/login" className="link link-primary font-semibold">
+            Đăng nhập
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleRegister} className="space-y-4">
+        <FormField label="Họ tên" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} errors={errors.name} autoFocus />
+        <FormField label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} errors={errors.email} />
+        <FormField
+          label="Mật khẩu"
+          type="password"
+          autoComplete="new-password"
+          placeholder="Ít nhất 6 ký tự"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          errors={errors.password}
+        />
+        <FormField
+          label="Xác nhận mật khẩu"
+          type="password"
+          autoComplete="new-password"
+          value={passwordConfirmation}
+          onChange={(e) => setPasswordConfirmation(e.target.value)}
+        />
+        {generalError && <div className="alert alert-error text-sm">{generalError}</div>}
+        <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+          {loading && <span className="loading loading-spinner loading-sm" />}
+          Đăng ký
+        </button>
+      </form>
+    </AuthLayout>
   );
 };
 
