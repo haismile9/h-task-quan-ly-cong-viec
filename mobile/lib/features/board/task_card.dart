@@ -7,10 +7,13 @@ import 'task_meta.dart';
 
 /// Thẻ công việc trên bảng: vạch ưu tiên, tiêu đề (✓ khi xong), hạn chót, mô tả, người được giao.
 class TaskCard extends StatelessWidget {
-  const TaskCard({super.key, required this.task, this.onTap});
+  const TaskCard({super.key, required this.task, this.onTap, this.onToggleDone});
 
   final Task task;
   final VoidCallback? onTap;
+
+  /// Bấm vòng tròn để đánh dấu xong / chưa xong (null = chỉ hiện ✓ khi đã xong).
+  final VoidCallback? onToggleDone;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +51,26 @@ class TaskCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (task.isDone)
+                  if (onToggleDone != null)
+                    // Vùng chạm 40x40 cho dễ bấm, biểu tượng vẫn nhỏ cạnh tiêu đề
+                    Semantics(
+                      button: true,
+                      checked: task.isDone,
+                      label: task.isDone ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành',
+                      child: InkResponse(
+                        onTap: onToggleDone,
+                        radius: 20,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 1, 8, 4),
+                          child: Icon(
+                            task.isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+                            size: 20,
+                            color: task.isDone ? const Color(0xFF22A06B) : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (task.isDone)
                     const Padding(
                       padding: EdgeInsets.only(right: 6, top: 1),
                       child: Icon(Icons.check_circle, size: 18, color: Color(0xFF22A06B)),

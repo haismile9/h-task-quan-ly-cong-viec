@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../features/account/account_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
+import '../features/board/board_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/shell/home_shell.dart';
+import '../features/task/task_detail_screen.dart';
 import '../models/project.dart';
-import '../features/board/board_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Báo GoRouter tính lại redirect mỗi khi trạng thái đăng nhập đổi
@@ -57,6 +58,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => BoardScreen(
           projectId: int.parse(state.pathParameters['id']!),
           initial: state.extra is Project ? state.extra as Project : null,
+        ),
+      ),
+      GoRoute(
+        path: '/boards/:id/cards/:taskId',
+        builder: (_, state) => TaskDetailScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+          taskId: int.parse(state.pathParameters['taskId']!),
         ),
       ),
     ],

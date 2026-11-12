@@ -1,3 +1,4 @@
+import 'json.dart';
 import 'user.dart';
 
 /// Danh sách (cột) trên bảng.
@@ -13,10 +14,10 @@ class TaskList {
       TaskList(id: id, projectId: projectId, name: name ?? this.name, position: position ?? this.position);
 
   factory TaskList.fromJson(Map<String, dynamic> json) => TaskList(
-        id: json['id'] as int,
-        projectId: json['project_id'] as int,
+        id: asInt(json['id']),
+        projectId: asInt(json['project_id']),
         name: (json['name'] ?? '') as String,
-        position: (json['position'] ?? 0) as int,
+        position: asInt(json['position']),
       );
 }
 
@@ -55,11 +56,35 @@ class Task {
   bool get isDone => status == 'done';
   bool get hasDescription => description?.trim().isNotEmpty ?? false;
 
+  Task copyWith({
+    int? id,
+    int? listId,
+    int? position,
+    String? title,
+    String? status,
+    TaskPriority? priority,
+    String? Function()? description,
+    DateTime? Function()? deadline,
+    List<User>? assignees,
+  }) =>
+      Task(
+        id: id ?? this.id,
+        projectId: projectId,
+        listId: listId ?? this.listId,
+        position: position ?? this.position,
+        title: title ?? this.title,
+        description: description != null ? description() : this.description,
+        status: status ?? this.status,
+        priority: priority ?? this.priority,
+        deadline: deadline != null ? deadline() : this.deadline,
+        assignees: assignees ?? this.assignees,
+      );
+
   factory Task.fromJson(Map<String, dynamic> json) => Task(
-        id: json['id'] as int,
-        projectId: json['project_id'] as int,
-        listId: json['list_id'] as int,
-        position: (json['position'] ?? 0) as int,
+        id: asInt(json['id']),
+        projectId: asInt(json['project_id']),
+        listId: asInt(json['list_id']),
+        position: asInt(json['position']),
         title: (json['title'] ?? '') as String,
         description: json['description'] as String?,
         status: (json['status'] ?? 'pending') as String,
@@ -85,6 +110,9 @@ class BoardData {
 
   final List<TaskList> lists;
   final List<Task> tasks;
+
+  BoardData copyWith({List<TaskList>? lists, List<Task>? tasks}) =>
+      BoardData(lists: lists ?? this.lists, tasks: tasks ?? this.tasks);
 
   /// Thẻ của một cột, đúng thứ tự đã lưu.
   List<Task> tasksOf(int listId) =>

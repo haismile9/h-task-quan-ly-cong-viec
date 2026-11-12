@@ -23,6 +23,13 @@ Bản release mặc định gọi `https://htask-api.haismile.dev/api`. Tên mi�
 
 Với điện thoại thật, backend cần chạy `php artisan serve --host=0.0.0.0` để máy khác trong mạng truy cập được. Bản debug đã cho phép gọi `http://`; bản release chỉ gọi `https://`.
 
+Máy ảo báo `INSTALL_FAILED_INSUFFICIENT_STORAGE` (APK debug ~200 MB)? Cài bản profile nhỏ hơn (~40 MB), vẫn gọi được backend ở máy:
+
+```bash
+flutter build apk --profile --target-platform android-x64 --dart-define=API_URL=http://10.0.2.2:8000/api
+adb install -r build/app/outputs/flutter-apk/app-profile.apk
+```
+
 Yêu cầu: Flutter 3.24+, Android Studio (JDK 21), Android 6.0 (API 23) trở lên. Build iOS cần máy Mac có Xcode.
 
 ## Thư viện
@@ -56,8 +63,8 @@ lib/
 |---|---|---|
 | 1 | Khung app, theme sáng/tối, `ApiClient`, đăng nhập và tự đăng xuất khi gặp 401, thanh tab, danh sách bảng (tìm kiếm, kéo xuống để làm mới) | ✅ Xong |
 | 2 | Bảng Kanban chỉ đọc: các cột vuốt ngang trên nền bảng, thẻ có độ ưu tiên, hạn chót, người được giao, dấu hoàn thành; lọc theo từ khoá / thẻ của tôi / độ ưu tiên | ✅ Xong |
-| 3 | Thao tác trên bảng: thêm thẻ nhanh, tick hoàn thành, thêm/đổi tên/xoá cột, kéo thả thẻ giữa các cột (`PUT /tasks/{id}/move`), tạo bảng, menu bảng (mô tả, hình nền) | ⏳ |
-| 4 | Chi tiết thẻ: sửa tiêu đề, mô tả, độ ưu tiên, hạn chót, giao thành viên, bình luận và dòng hoạt động | ⏳ |
+| 3 | Thao tác trên bảng: thêm thẻ nhanh, tick hoàn thành, kéo thả thẻ (nhấn giữ; kéo tới mép màn hình để sang cột bên cạnh), thêm/đổi tên/xoá/sắp xếp cột, tạo bảng, menu bảng (mô tả, đổi tên, hình nền, xoá), gắn sao bảng | ✅ Xong |
+| 4 | Chi tiết thẻ: sửa tiêu đề, mô tả, độ ưu tiên, hạn chót, giao thành viên, chuyển danh sách, xoá thẻ, bình luận và dòng hoạt động | ✅ Xong |
 | 5 | Tab Việc của tôi (`/my-tasks`), Hoạt động (`/activities/me`), Tổng quan (`/dashboard`) | ⏳ |
 | 6 | Đăng ký, xác minh email, quên mật khẩu, chia sẻ bảng và mời thành viên, mở lời mời qua deep link | ⏳ |
 | 7 | Thông báo đẩy (FCM): thêm bảng `device_tokens` và endpoint `POST /devices` ở backend | ⏳ |

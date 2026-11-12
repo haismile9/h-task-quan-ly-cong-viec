@@ -1,3 +1,5 @@
+import 'json.dart';
+
 class User {
   const User({required this.id, required this.name, required this.email, this.role = 'member'});
 
@@ -11,7 +13,7 @@ class User {
   bool get isAdmin => role == 'admin';
 
   factory User.fromJson(Map<String, dynamic> json) => User(
-        id: json['id'] as int,
+        id: asInt(json['id']),
         name: (json['name'] ?? '') as String,
         email: (json['email'] ?? '') as String,
         role: (json['role'] ?? 'member') as String,

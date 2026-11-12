@@ -28,7 +28,9 @@ ThemeData buildTheme(Brightness brightness) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(48),
+        // Không dùng Size.fromHeight (rộng vô hạn) — nút trong Row / hộp thoại sẽ lỗi bố cục.
+        // Nút cần rộng hết cỡ đặt trong Column stretch hoặc ListView.
+        minimumSize: const Size(64, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
       ),

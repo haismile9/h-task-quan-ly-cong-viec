@@ -1,3 +1,4 @@
+import 'json.dart';
 import 'user.dart';
 
 class Project {
@@ -24,11 +25,11 @@ class Project {
   final DateTime? updatedAt;
 
   factory Project.fromJson(Map<String, dynamic> json) => Project(
-        id: json['id'] as int,
+        id: asInt(json['id']),
         name: (json['name'] ?? '') as String,
         description: json['description'] as String?,
         backgroundUrl: json['background_url'] as String?,
-        ownerId: json['owner_id'] as int,
+        ownerId: asInt(json['owner_id']),
         owner: json['owner'] is Map<String, dynamic> ? User.fromJson(json['owner'] as Map<String, dynamic>) : null,
         members: (json['users'] as List? ?? [])
             .whereType<Map<String, dynamic>>()

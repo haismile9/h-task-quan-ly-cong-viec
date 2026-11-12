@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/backgrounds.dart';
 import '../../models/project.dart';
+import 'create_board_sheet.dart';
 import 'projects_repository.dart';
 
 /// Tab "Bảng": tiêu đề lớn, ô tìm kiếm, danh sách bảng có ảnh nền thu nhỏ.
@@ -40,9 +41,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                         child: Text('Bảng', style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
                       ),
                       IconButton.filled(
-                        // Bước 3: tạo bảng mới
-                        onPressed: () => ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(content: Text('Tạo bảng sẽ có ở bước tiếp theo'))),
+                        onPressed: () => showCreateBoardSheet(context),
                         icon: const Icon(Icons.add),
                         tooltip: 'Tạo bảng',
                         iconSize: 28,
@@ -90,23 +89,11 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                       ),
                     ];
                   }
+                  final starredIds = ref.watch(starredProvider).valueOrNull ?? const <int>{};
+                  final starred = shown.where((p) => starredIds.contains(p.id)).toList();
                   return [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                      sliver: SliverToBoxAdapter(
-                        child: Text('BẢNG CỦA BẠN',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      sliver: SliverList.separated(
-                        itemCount: shown.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _BoardTile(project: shown[i]),
-                      ),
-                    ),
+                    if (starred.isNotEmpty) ..._section(theme, 'ĐÃ GẮN SAO', starred),
+                    ..._section(theme, 'BẢNG CỦA BẠN', shown),
                   ];
                 },
               ),
@@ -118,14 +105,34 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   }
 }
 
-class _BoardTile extends StatelessWidget {
+List<Widget> _section(ThemeData theme, String title, List<Project> projects) => [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+        sliver: SliverToBoxAdapter(
+          child: Text(title,
+              style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w700)),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        sliver: SliverList.separated(
+          itemCount: projects.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (_, i) => _BoardTile(project: projects[i]),
+        ),
+      ),
+    ];
+
+class _BoardTile extends ConsumerWidget {
   const _BoardTile({required this.project});
 
   final Project project;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final starred = ref.watch(starredProvider).valueOrNull?.contains(project.id) ?? false;
     return Material(
       color: theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(14),
@@ -157,7 +164,12 @@ class _BoardTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+              IconButton(
+                tooltip: starred ? 'Bỏ gắn sao' : 'Gắn sao',
+                onPressed: () => ref.read(starredProvider.notifier).toggle(project.id),
+                icon: Icon(starred ? Icons.star : Icons.star_border,
+                    color: starred ? Colors.amber : theme.colorScheme.onSurfaceVariant),
+              ),
             ],
           ),
         ),
