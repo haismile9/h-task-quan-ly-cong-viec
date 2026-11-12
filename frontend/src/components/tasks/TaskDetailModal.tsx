@@ -256,8 +256,15 @@ const TaskDetailModal = ({ task, lists, members, onClose }: TaskDetailModalProps
                     {task.deadline && (
                       <button
                         className="btn btn-ghost btn-sm flex-1"
-                        onClick={() => {
+                        onClick={async () => {
                           closeDropdown();
+                          const ok = await confirm({
+                            title: "Gỡ hạn chót",
+                            message: `Gỡ hạn chót ${dayjs(task.deadline).format("DD/MM/YYYY")} khỏi thẻ này?`,
+                            confirmText: "Gỡ hạn",
+                            danger: true,
+                          });
+                          if (!ok) return;
                           setDeadline("");
                           save({ deadline: null });
                         }}

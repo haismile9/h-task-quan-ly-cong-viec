@@ -55,6 +55,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
+  flutter_native_splash: ^2.4.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -97,3 +98,16 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Màn hình khởi động (native): `dart run flutter_native_splash:create` sau khi sửa.
+flutter_native_splash:
+  color: "#0C66E4"
+  image: assets/branding/splash_logo.png
+  color_dark: "#09326C"
+  image_dark: assets/branding/splash_logo.png
+  android_12:
+    color: "#0C66E4"
+    image: assets/branding/splash_logo.png
+    color_dark: "#09326C"
+    image_dark: assets/branding/splash_logo.png
+  fullscreen: false

@@ -18,6 +18,17 @@ export const authApi = {
 
   register: (input: RegisterInput) => client.post("/register", input),
 
+  // Đăng ký từng bước: email → mã 6 số → họ tên + mật khẩu (tạo tài khoản kèm bảng mẫu)
+  signupStart: (email: string) => client.post<{ message: string }>("/register/start", { email }).then((r) => r.data),
+  signupVerifyCode: (email: string, code: string) => client.post("/register/verify-code", { email, code }),
+  signupComplete: (input: { email: string; code: string; name: string; password: string }) =>
+    client
+      .post<{ token: string; user: User; project_id: number }>("/register/complete", {
+        ...input,
+        password_confirmation: input.password,
+      })
+      .then((r) => r.data),
+
   verifyEmail: (email: string, code: string) =>
     client.post<{ token: string; user: User }>("/verify-email", { email, code }).then((r) => r.data),
 

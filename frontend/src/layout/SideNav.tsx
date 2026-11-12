@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { AiOutlineCheckSquare, AiOutlineDashboard, AiOutlineProject } from "react-icons/ai";
+import { AiOutlineCalendar, AiOutlineCheckSquare, AiOutlineDashboard, AiOutlineProject } from "react-icons/ai";
 import { useProjects } from "../hooks/useProjects";
 import { backgroundCss } from "../utils/boardBackgrounds";
 
 const NAV_ITEMS = [
   { to: "/projects", label: "Bảng", icon: <AiOutlineProject /> },
   { to: "/my-task", label: "Công việc của tôi", icon: <AiOutlineCheckSquare /> },
+  { to: "/planner", label: "Kế hoạch", icon: <AiOutlineCalendar /> },
   { to: "/dashboard", label: "Tổng quan", icon: <AiOutlineDashboard /> },
 ];
 

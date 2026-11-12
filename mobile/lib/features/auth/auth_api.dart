@@ -9,16 +9,27 @@ class AuthApi {
 
   final ApiClient _api;
 
-  /// Gửi mã 6 số về email; tài khoản chỉ được tạo khi xác minh mã (POST /verify-email).
-  Future<void> register({required String name, required String email, required String password}) =>
-      _api.post('/register', {
-        'name': name,
+  // ----- Đăng ký từng bước (POST /register/start → /verify-code → /complete) -----
+
+  Future<void> signupStart(String email) => _api.post('/register/start', {'email': email});
+
+  Future<void> signupVerifyCode(String email, String code) =>
+      _api.post('/register/verify-code', {'email': email, 'code': code});
+
+  /// Tạo tài khoản + bảng mẫu; trả JSON có token, user, project_id.
+  Future<Map<String, dynamic>> signupComplete({
+    required String email,
+    required String code,
+    required String name,
+    required String password,
+  }) =>
+      _api.post<Map<String, dynamic>>('/register/complete', {
         'email': email,
+        'code': code,
+        'name': name,
         'password': password,
         'password_confirmation': password,
       });
-
-  Future<void> resendCode(String email) => _api.post('/resend-code', {'email': email});
 
   Future<void> sendResetCode(String email) => _api.post('/password/reset/send-code', {'email': email});
 

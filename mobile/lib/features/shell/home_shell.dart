@@ -25,6 +25,10 @@ class HomeShell extends ConsumerWidget {
           const NavigationDestination(
               icon: Icon(Icons.task_alt_outlined), selectedIcon: Icon(Icons.task_alt), label: 'Việc của tôi'),
           const NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month),
+              label: 'Kế hoạch'),
+          const NavigationDestination(
               icon: Icon(Icons.notifications_none), selectedIcon: Icon(Icons.notifications), label: 'Hoạt động'),
           NavigationDestination(icon: Avatar(name: user?.name ?? '?', size: 26), label: 'Tài khoản'),
         ],

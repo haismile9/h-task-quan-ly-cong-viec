@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { AiOutlineInfoCircle } from "react-icons/ai";
 import { authApi } from "../../api/auth";
 import { getErrorMessage } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
@@ -25,11 +24,6 @@ const GeneralSettings = () => {
   return (
     <>
       <h1 className="text-3xl font-bold mb-8">Cài đặt</h1>
-
-      <div className="alert alert-info alert-soft mb-10">
-        <AiOutlineInfoCircle className="text-xl" />
-        <span>Đổi tên và mật khẩu ở mục “Hồ sơ và khả năng hiển thị”.</span>
-      </div>
 
       <section className="mb-10">
         <h2 className="text-xl font-semibold mb-3">Ngôn ngữ và khu vực</h2>

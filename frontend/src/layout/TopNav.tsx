@@ -66,40 +66,45 @@ const TopNav = () => {
         <span className="font-bold text-lg tracking-tight hidden sm:inline">H-Task</span>
       </Link>
 
-      <form onSubmit={handleSearch} className="flex-1 flex justify-center min-w-0">
-        <label className="input input-sm input-bordered w-full max-w-2xl flex items-center gap-2 bg-base-100">
-          <AiOutlineSearch className="text-base-content/50 shrink-0" />
-          <input
-            ref={searchRef}
-            type="search"
-            className="grow min-w-0"
-            placeholder="Tìm kiếm dự án  ( / )"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Tìm kiếm dự án"
-          />
-        </label>
-      </form>
+      {/* Tìm kiếm + "Tạo mới" đứng cạnh nhau ở giữa thanh (như Trello) */}
+      <div className="flex-1 flex justify-center min-w-0">
+        <div className="flex items-center gap-2 w-full max-w-3xl min-w-0">
+          <form onSubmit={handleSearch} className="flex-1 min-w-0">
+            <label className="input input-sm input-bordered w-full flex items-center gap-2 bg-base-100">
+              <AiOutlineSearch className="text-base-content/50 shrink-0" />
+              <input
+                ref={searchRef}
+                type="search"
+                className="grow min-w-0"
+                placeholder="Tìm kiếm dự án  ( / )"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Tìm kiếm dự án"
+              />
+            </label>
+          </form>
 
-      {canCreate && (
-        <div className="relative shrink-0" ref={createRef}>
-          <button className="btn btn-primary btn-sm" onClick={() => setCreating((v) => !v)} aria-expanded={creating}>
-            Tạo mới
-          </button>
-          {creating && (
-            <div className="absolute right-0 mt-2 w-80 bg-base-100 rounded-box shadow-xl border border-base-300 p-4 z-50">
-              <div className="flex items-center justify-between mb-3">
-                <span className="w-6" />
-                <h2 className="text-sm font-semibold">Tạo dự án</h2>
-                <button className="btn btn-ghost btn-xs btn-square" onClick={() => setCreating(false)} aria-label="Đóng">
-                  <AiOutlineClose />
-                </button>
-              </div>
-              <ProjectForm compact onDone={() => setCreating(false)} />
+          {canCreate && (
+            <div className="relative shrink-0" ref={createRef}>
+              <button className="btn btn-primary btn-sm" onClick={() => setCreating((v) => !v)} aria-expanded={creating}>
+                Tạo mới
+              </button>
+              {creating && (
+                <div className="absolute right-0 mt-2 w-80 bg-base-100 rounded-box shadow-xl border border-base-300 p-4 z-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="w-6" />
+                    <h2 className="text-sm font-semibold">Tạo dự án</h2>
+                    <button className="btn btn-ghost btn-xs btn-square" onClick={() => setCreating(false)} aria-label="Đóng">
+                      <AiOutlineClose />
+                    </button>
+                  </div>
+                  <ProjectForm compact onDone={() => setCreating(false)} />
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
 
       <AccountMenu />
     </header>

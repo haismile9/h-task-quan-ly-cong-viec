@@ -10,6 +10,7 @@ import Dashboard from "../pages/Dashboard";
 import ProjectList from "../pages/ProjectList";
 import ProjectDetails from "../pages/ProjectDetails";
 import MyTasks from "../pages/MyTasks";
+import Planner from "../pages/Planner";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
         children: [
           { path: "projects", element: <ProjectList /> },
           { path: "my-task", element: <MyTasks /> },
+          { path: "planner", element: <Planner /> },
           { path: "dashboard", element: <Dashboard /> },
         ],
       },

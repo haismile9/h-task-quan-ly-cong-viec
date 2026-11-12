@@ -96,6 +96,25 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     await _update({'deadline': value}, (t) => t.copyWith(deadline: () => picked));
   }
 
+  Future<void> _removeDeadline(Task task) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Gỡ hạn chót?'),
+        content: Text('Gỡ hạn chót ${DateFormat('dd/MM/yyyy').format(task.deadline!)} khỏi thẻ này?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Gỡ hạn'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _update({'deadline': null}, (t) => t.copyWith(deadline: () => null));
+  }
+
   Future<void> _moveToList(Task task, List<TaskList> lists) async {
     final target = await showModalBottomSheet<TaskList>(
       context: context,
@@ -285,7 +304,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                       IconButton(
                         tooltip: 'Gỡ hạn chót',
                         icon: const Icon(Icons.close),
-                        onPressed: () => _update({'deadline': null}, (t) => t.copyWith(deadline: () => null)),
+                        onPressed: () => _removeDeadline(task),
                       ),
                   ]),
                 ),

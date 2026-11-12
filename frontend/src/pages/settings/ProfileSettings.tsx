@@ -9,7 +9,7 @@ import { useToast } from "../../components/ui/Toast";
 import { roleLabel } from "../../layout/AccountMenu";
 import ChangePasswordModal from "../../components/account/ChangePasswordModal";
 
-/** Hồ sơ và khả năng hiển thị: thông tin cá nhân + đổi mật khẩu. */
+/** Hồ sơ: thông tin cá nhân + đổi mật khẩu. */
 const ProfileSettings = () => {
   const { user, setUser } = useAuth();
   const toast = useToast();
@@ -35,7 +35,7 @@ const ProfileSettings = () => {
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-8">Hồ sơ và khả năng hiển thị</h1>
+      <h1 className="text-3xl font-bold mb-8">Hồ sơ</h1>
 
       {/* Thẻ hồ sơ */}
       <div className="rounded-box overflow-hidden border border-base-300 mb-10">

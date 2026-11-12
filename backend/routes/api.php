@@ -8,6 +8,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\Auth\RegistrationController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ListController;
@@ -19,6 +20,13 @@ use App\Http\Controllers\BackgroundController;
 Route::get('/sanctum/csrf-cookie', fn () => response()->json(['csrf' => true]));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// 🆕 Đăng ký từng bước: email → mã → họ tên + mật khẩu (web và mobile)
+Route::middleware('throttle:signup')->group(function () {
+    Route::post('/register/start', [RegistrationController::class, 'start']);
+    Route::post('/register/verify-code', [RegistrationController::class, 'verifyCode']);
+    Route::post('/register/complete', [RegistrationController::class, 'complete']);
+});
 
 // 📤 Gửi và xác minh mã email (public - trước khi có token)
 Route::post('/verify-email', [VerifyEmailController::class, 'verify']);

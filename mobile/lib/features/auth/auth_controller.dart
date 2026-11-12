@@ -38,12 +38,6 @@ class AuthController extends AsyncNotifier<User?> {
     await signInWith(json, persist: remember);
   }
 
-  /// Xác minh mã đăng ký → nhận token và vào app luôn.
-  Future<void> verifyEmail(String email, String code) async {
-    final json = await _api.post<Map<String, dynamic>>('/verify-email', {'email': email, 'code': code});
-    await signInWith(json);
-  }
-
   /// Lưu phiên từ một phản hồi có {token, user} (đăng nhập, xác minh email, nhận lời mời).
   Future<void> signInWith(Map<String, dynamic> json, {bool persist = true}) async {
     final token = json['token'] as String;

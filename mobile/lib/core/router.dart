@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/account/account_screen.dart';
 import '../features/activity/activity_screen.dart';
 import '../features/my_tasks/my_tasks_screen.dart';
+import '../features/planner/planner_screen.dart';
 import '../features/auth/accept_invitation_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/forgot_password_screen.dart';
@@ -23,7 +24,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(authState.dispose);
 
   // Trang mở được khi chưa đăng nhập; trang lời mời mở được cả khi đã đăng nhập.
-  const authOnlyPaths = {'/login', '/register', '/verify-email', '/forgot-password'};
+  const authOnlyPaths = {'/login', '/register', '/forgot-password'};
   bool isPublic(String loc) => authOnlyPaths.contains(loc) || loc.startsWith('/invite/');
 
   // Link mở app (vd. htask://app/invite/<token>) trong lúc đang khôi phục phiên → nhớ lại để mở sau
@@ -53,7 +54,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (_, __) => const _SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/verify-email', builder: (_, state) => VerifyEmailScreen(email: state.extra as String? ?? '')),
       GoRoute(
         path: '/forgot-password',
         builder: (_, state) => ForgotPasswordScreen(initialEmail: state.extra as String?),
@@ -70,6 +70,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/my-tasks', builder: (_, __) => const MyTasksScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/planner', builder: (_, __) => const PlannerScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/activity', builder: (_, __) => const ActivityScreen()),
@@ -101,6 +104,40 @@ final routerProvider = Provider<GoRouter>((ref) {
 class _SplashScreen extends StatelessWidget {
   const _SplashScreen();
 
+  /// Khớp với splash native (pubspec.yaml → flutter_native_splash) để chuyển cảnh không bị chớp.
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) {
+    final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    return Scaffold(
+      backgroundColor: dark ? const Color(0xFF09326C) : const Color(0xFF0C66E4),
+      body: Stack(children: [
+        Center(
+          child: Container(
+            // Cùng cỡ với logo splash Android 12 (đo trên máy: ~158dp) để không "nhảy" khi chuyển cảnh
+            width: 158,
+            height: 158,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(37)),
+            child: const Text(
+              'H',
+              style: TextStyle(
+                color: Color(0xFF0C66E4),
+                fontSize: 104,
+                fontWeight: FontWeight.w800,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ),
+        const Align(
+          alignment: Alignment(0, 0.45),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+          ),
+        ),
+      ]),
+    );
+  }
 }

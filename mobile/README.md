@@ -76,7 +76,7 @@ lib/
 | 2 | Bảng Kanban chỉ đọc: các cột vuốt ngang trên nền bảng, thẻ có độ ưu tiên, hạn chót, người được giao, dấu hoàn thành; lọc theo từ khoá / thẻ của tôi / độ ưu tiên | ✅ Xong |
 | 3 | Thao tác trên bảng: thêm thẻ nhanh, tick hoàn thành, kéo thả thẻ (nhấn giữ; kéo tới mép màn hình để sang cột bên cạnh), thêm/đổi tên/xoá/sắp xếp cột, tạo bảng, menu bảng (mô tả, đổi tên, hình nền, xoá), gắn sao bảng | ✅ Xong |
 | 4 | Chi tiết thẻ: sửa tiêu đề, mô tả, độ ưu tiên, hạn chót, giao thành viên, chuyển danh sách, xoá thẻ, bình luận và dòng hoạt động | ✅ Xong |
-| 5 | Tab Việc của tôi (chia nhóm theo hạn, tick ngay), Hoạt động (tải thêm khi cuộn), Tài khoản: tổng quan + tiến độ bảng, sửa họ tên, đổi mật khẩu, email nhắc hạn, giao diện Sáng/Tối/Hệ thống | ✅ Xong |
-| 6 | Ô "Ghi nhớ đăng nhập" (nhớ email, bỏ chọn = không lưu phiên), đăng ký + xác minh mã email, quên mật khẩu (3 bước), chia sẻ bảng (mời bằng email, gỡ thành viên, huỷ lời mời), nhận lời mời qua deep link `htask://app/invite/<token>` | ✅ Xong |
+| 5 | Tab Việc của tôi (chia nhóm theo hạn, tick ngay), Kế hoạch (thẻ theo ngày, quá hạn ở trên), Hoạt động (tải thêm khi cuộn), Tài khoản: tổng quan + tiến độ bảng, sửa họ tên, đổi mật khẩu, email nhắc hạn, giao diện Sáng/Tối/Hệ thống | ✅ Xong |
+| 6 | Ô "Ghi nhớ đăng nhập" (nhớ email, bỏ chọn = không lưu phiên), đăng ký từng bước (email → mã → họ tên + mật khẩu → tạo bảng mẫu), quên mật khẩu (3 bước), chia sẻ bảng (mời bằng email, gỡ thành viên, huỷ lời mời), nhận lời mời qua deep link `htask://app/invite/<token>` | ✅ Xong |
 | 7 | Thông báo đẩy (FCM): thêm bảng `device_tokens` và endpoint `POST /devices` ở backend | ⏳ |
 | 8 | Phát hành: icon, splash, ký APK/AAB, đưa lên Google Play (và App Store nếu có Mac) | ⏳ |

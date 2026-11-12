@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { AiOutlineClose, AiOutlineCreditCard, AiOutlineHistory, AiOutlineSetting, AiOutlineUser } from "react-icons/ai";
 
 export const SETTINGS_NAV = [
-  { to: "/u/profile", label: "Hồ sơ và khả năng hiển thị", icon: <AiOutlineUser /> },
+  { to: "/u/profile", label: "Hồ sơ", icon: <AiOutlineUser /> },
   { to: "/u/activity", label: "Hoạt động", icon: <AiOutlineHistory /> },
   { to: "/u/cards", label: "Thẻ", icon: <AiOutlineCreditCard /> },
   { to: "/u/settings", label: "Cài đặt", icon: <AiOutlineSetting /> },

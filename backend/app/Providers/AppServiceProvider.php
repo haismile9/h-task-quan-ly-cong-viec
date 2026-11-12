@@ -30,5 +30,13 @@ class AppServiceProvider extends ServiceProvider
                 ? Limit::perMinute(3)->by($key)
                 : Limit::perMinute(10)->by($key);
         });
+
+        // Đăng ký từng bước: chặn spam gửi mail và đoán mã theo IP + email
+        RateLimiter::for('signup', function (Request $request) {
+            $key = $request->ip() . '|' . mb_strtolower((string) $request->input('email')) . '|' . $request->path();
+            return str_ends_with($request->path(), 'start')
+                ? Limit::perMinute(3)->by($key)
+                : Limit::perMinute(10)->by($key);
+        });
     }
 }
