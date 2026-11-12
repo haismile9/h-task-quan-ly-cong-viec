@@ -1,8 +1,10 @@
-﻿# H-Task – Quản lý công việc nhóm theo bảng Kanban
+﻿# H-Task – Web quản lý công việc nhóm (bảng Kanban giống Trello)
 
-H-Task là ứng dụng web quản lý công việc nhóm theo phong cách Trello: mỗi dự án là một bảng gồm nhiều danh sách, mỗi công việc là một thẻ có thể kéo thả, giao người, đặt hạn chót và trao đổi bình luận. Dự án gồm **frontend React + TypeScript** và **backend Laravel** giao tiếp qua REST API, dữ liệu lưu trên **MySQL**.
+**H-Task** là **web quản lý công việc** và **quản lý dự án** cho nhóm, theo phong cách Trello: mỗi dự án là một bảng Kanban gồm nhiều danh sách, mỗi công việc là một thẻ có thể kéo thả, giao người, đặt hạn chót và trao đổi bình luận. Dự án gồm **frontend React + TypeScript** và **backend Laravel** giao tiếp qua REST API, dữ liệu lưu trên **MySQL**.
 
-![Bảng Kanban](./assets/board.png)
+> *English:* H-Task is an open-source team task management web app with a Trello-like Kanban board, built with React, TypeScript, Laravel and MySQL.
+
+![Web quản lý công việc H-Task – bảng Kanban kéo thả giống Trello](./assets/board.png)
 
 ## Mục lục
 
