@@ -35,7 +35,7 @@ Kiểm tra: `dig +short htask-api.haismile.dev` phải trả về IP của serve
 
 ```bash
 cd /opt
-sudo git clone https://github.com/haismile9/Web_H-task.git htask
+sudo git clone https://github.com/haismile9/h-task-quan-ly-cong-viec.git htask
 sudo chown -R $USER:$USER htask
 cd htask/deploy
 

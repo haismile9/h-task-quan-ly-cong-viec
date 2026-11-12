@@ -6,7 +6,7 @@
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
 2. Click "New Project"
-3. Import your GitHub repository `haismile9/Web_H-task`
+3. Import your GitHub repository `haismile9/h-task-quan-ly-cong-viec`
 4. Select the `frontend` folder as the root directory
 5. Vercel will auto-detect it as a Vite project
 
