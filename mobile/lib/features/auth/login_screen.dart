@@ -133,7 +133,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       title: const Text('Ghi nhớ đăng nhập'),
-                      subtitle: const Text('Bỏ chọn nếu dùng máy chung'),
                     ),
                     if (_error != null && _error!.fieldErrors.isEmpty) ...[
                       const SizedBox(height: 12),
