@@ -10,6 +10,7 @@ class Project {
     this.backgroundUrl,
     this.owner,
     this.members = const [],
+    this.pendingInvitations = const [],
     this.updatedAt,
   });
 
@@ -22,7 +23,16 @@ class Project {
   final int ownerId;
   final User? owner;
   final List<User> members;
+
+  /// Lời mời gửi tới email chưa có tài khoản (chỉ có khi xem chi tiết dự án).
+  final List<PendingInvitation> pendingInvitations;
   final DateTime? updatedAt;
+
+  /// Thành viên bảng = chủ dự án + người trong project_user (dữ liệu cũ có thể thiếu chủ).
+  List<User> get allMembers => [
+        if (owner != null) owner!,
+        ...members.where((m) => m.id != owner?.id),
+      ];
 
   factory Project.fromJson(Map<String, dynamic> json) => Project(
         id: asInt(json['id']),
@@ -35,6 +45,20 @@ class Project {
             .whereType<Map<String, dynamic>>()
             .map(User.fromJson)
             .toList(),
+        pendingInvitations: (json['pending_invitations'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map(PendingInvitation.fromJson)
+            .toList(),
         updatedAt: DateTime.tryParse('${json['updated_at']}'),
       );
+}
+
+class PendingInvitation {
+  const PendingInvitation({required this.id, required this.email});
+
+  final int id;
+  final String email;
+
+  factory PendingInvitation.fromJson(Map<String, dynamic> json) =>
+      PendingInvitation(id: asInt(json['id']), email: (json['email'] ?? '') as String);
 }

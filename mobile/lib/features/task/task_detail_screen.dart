@@ -526,6 +526,33 @@ class _CommentItem extends ConsumerWidget {
   final Comment comment;
   final bool canDelete;
 
+  /// Xoá phải qua menu ⋯ rồi xác nhận — tránh bấm nhầm khi cuộn.
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xoá bình luận?'),
+        content: const Text('Bình luận sẽ bị xoá vĩnh viễn. Không thể khôi phục.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xoá'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(commentsProvider(comment.taskId).notifier).delete(comment.id);
+      messenger.showSnackBar(const SnackBar(content: Text('Đã xoá bình luận')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(ApiException.from(e).message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -536,13 +563,38 @@ class _CommentItem extends ConsumerWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text.rich(TextSpan(children: [
-              TextSpan(text: comment.user.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              TextSpan(
-                text: '  ${timeAgo(comment.createdAt)}',
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+            Row(children: [
+              Expanded(
+                child: Text.rich(TextSpan(children: [
+                  TextSpan(text: comment.user.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  TextSpan(
+                    text: '  ${timeAgo(comment.createdAt)}',
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+                  ),
+                ])),
               ),
-            ])),
+              if (canDelete)
+                SizedBox(
+                  height: 28,
+                  child: PopupMenuButton<String>(
+                    tooltip: 'Thao tác bình luận',
+                    padding: EdgeInsets.zero,
+                    iconSize: 20,
+                    icon: Icon(Icons.more_horiz, color: theme.colorScheme.onSurfaceVariant),
+                    onSelected: (_) => _confirmDelete(context, ref),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(children: [
+                          Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                          const SizedBox(width: 12),
+                          Text('Xoá bình luận', style: TextStyle(color: theme.colorScheme.error)),
+                        ]),
+                      ),
+                    ],
+                  ),
+                ),
+            ]),
             const SizedBox(height: 4),
             Container(
               width: double.infinity,
@@ -554,25 +606,6 @@ class _CommentItem extends ConsumerWidget {
               ),
               child: Text(comment.content),
             ),
-            if (canDelete)
-              TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 32),
-                  foregroundColor: theme.colorScheme.onSurfaceVariant,
-                ),
-                onPressed: () async {
-                  try {
-                    await ref.read(commentsProvider(comment.taskId).notifier).delete(comment.id);
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(ApiException.from(e).message)));
-                    }
-                  }
-                },
-                child: const Text('Xoá'),
-              ),
           ]),
         ),
       ]),

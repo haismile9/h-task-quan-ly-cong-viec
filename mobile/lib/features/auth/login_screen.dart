@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
@@ -17,7 +18,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _password = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
+  bool _remember = true;
   ApiException? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Điền sẵn email đã nhớ và lựa chọn lần trước
+    LoginPrefs.load().then((p) {
+      if (!mounted) return;
+      setState(() {
+        _remember = p.remember;
+        if (_email.text.isEmpty) _email.text = p.email;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -33,7 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     try {
-      await ref.read(authProvider.notifier).login(_email.text, _password.text);
+      await ref.read(authProvider.notifier).login(_email.text, _password.text, remember: _remember);
       // Router tự chuyển sang trang chủ khi trạng thái đăng nhập đổi
     } catch (e) {
       if (mounted) setState(() => _error = ApiException.from(e));
@@ -110,17 +125,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
+                    const SizedBox(height: 4),
+                    CheckboxListTile(
+                      value: _remember,
+                      onChanged: (v) => setState(() => _remember = v ?? true),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('Ghi nhớ đăng nhập'),
+                      subtitle: const Text('Bỏ chọn nếu dùng máy chung'),
+                    ),
                     if (_error != null && _error!.fieldErrors.isEmpty) ...[
                       const SizedBox(height: 12),
                       Text(_error!.message, style: TextStyle(color: theme.colorScheme.error)),
                     ],
                     const SizedBox(height: 20),
                     FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                       onPressed: canSubmit ? _submit : null,
                       child: _loading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Text('Đăng nhập'),
                     ),
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () => context.push('/forgot-password', extra: _email.text.trim()),
+                      child: const Text('Quên mật khẩu?'),
+                    ),
+                    const Divider(height: 24),
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Text('Chưa có tài khoản?'),
+                      TextButton(onPressed: () => context.push('/register'), child: const Text('Đăng ký')),
+                    ]),
                   ],
                 ),
               ),

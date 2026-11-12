@@ -9,6 +9,7 @@ import '../../widgets/avatar.dart';
 import '../auth/auth_controller.dart';
 import '../projects/background_picker.dart';
 import '../projects/projects_repository.dart';
+import 'share_sheet.dart';
 
 Future<void> showBoardMenu(BuildContext context, Project project) => showModalBottomSheet<void>(
       context: context,
@@ -169,6 +170,19 @@ class _BoardMenuSheetState extends ConsumerState<_BoardMenuSheet> {
   }
 
   List<Widget> _menu(bool canManage, bool starred) => [
+        ListTile(
+          leading: const Icon(Icons.person_add_alt_1_outlined),
+          title: const Text('Chia sẻ'),
+          subtitle: Text('${p.allMembers.length} thành viên'
+              '${p.pendingInvitations.isEmpty ? '' : ' · ${p.pendingInvitations.length} lời mời đang chờ'}'),
+          onTap: () {
+            final nav = Navigator.of(context);
+            final rootContext = nav.context;
+            nav.pop();
+            showShareSheet(rootContext, p.id);
+          },
+        ),
+        const Divider(),
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('Về bảng này'),

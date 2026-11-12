@@ -32,22 +32,3 @@ class HomeShell extends ConsumerWidget {
     );
   }
 }
-
-/// Màn hình tạm cho các tab sẽ làm ở bước sau.
-class ComingSoonScreen extends StatelessWidget {
-  const ComingSoonScreen({super.key, required this.title, required this.step});
-
-  final String title;
-  final String step;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700))),
-      body: Center(
-        child: Text('Sẽ làm ở $step', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
-      ),
-    );
-  }
-}

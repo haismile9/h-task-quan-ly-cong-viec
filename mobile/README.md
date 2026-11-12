@@ -32,6 +32,17 @@ adb install -r build/app/outputs/flutter-apk/app-profile.apk
 
 Yêu cầu: Flutter 3.24+, Android Studio (JDK 21), Android 6.0 (API 23) trở lên. Build iOS cần máy Mac có Xcode.
 
+## Deep link lời mời
+
+App mở được link `htask://app/invite/<token>` (Android intent-filter, iOS `CFBundleURLTypes`). Thử trên máy ảo:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "htask://app/invite/<token>" dev.haismile.htask
+```
+
+Email mời hiện gửi link web `{FRONTEND_URL}/invite/<token>`. Muốn bấm link https trong email mà mở thẳng app thì cần
+App Links (Android) / Universal Links (iOS) trên tên miền frontend thật — làm khi đã deploy.
+
 ## Thư viện
 
 | Việc | Thư viện |
@@ -65,7 +76,7 @@ lib/
 | 2 | Bảng Kanban chỉ đọc: các cột vuốt ngang trên nền bảng, thẻ có độ ưu tiên, hạn chót, người được giao, dấu hoàn thành; lọc theo từ khoá / thẻ của tôi / độ ưu tiên | ✅ Xong |
 | 3 | Thao tác trên bảng: thêm thẻ nhanh, tick hoàn thành, kéo thả thẻ (nhấn giữ; kéo tới mép màn hình để sang cột bên cạnh), thêm/đổi tên/xoá/sắp xếp cột, tạo bảng, menu bảng (mô tả, đổi tên, hình nền, xoá), gắn sao bảng | ✅ Xong |
 | 4 | Chi tiết thẻ: sửa tiêu đề, mô tả, độ ưu tiên, hạn chót, giao thành viên, chuyển danh sách, xoá thẻ, bình luận và dòng hoạt động | ✅ Xong |
-| 5 | Tab Việc của tôi (`/my-tasks`), Hoạt động (`/activities/me`), Tổng quan (`/dashboard`) | ⏳ |
-| 6 | Đăng ký, xác minh email, quên mật khẩu, chia sẻ bảng và mời thành viên, mở lời mời qua deep link | ⏳ |
+| 5 | Tab Việc của tôi (chia nhóm theo hạn, tick ngay), Hoạt động (tải thêm khi cuộn), Tài khoản: tổng quan + tiến độ bảng, sửa họ tên, đổi mật khẩu, email nhắc hạn, giao diện Sáng/Tối/Hệ thống | ✅ Xong |
+| 6 | Ô "Ghi nhớ đăng nhập" (nhớ email, bỏ chọn = không lưu phiên), đăng ký + xác minh mã email, quên mật khẩu (3 bước), chia sẻ bảng (mời bằng email, gỡ thành viên, huỷ lời mời), nhận lời mời qua deep link `htask://app/invite/<token>` | ✅ Xong |
 | 7 | Thông báo đẩy (FCM): thêm bảng `device_tokens` và endpoint `POST /devices` ở backend | ⏳ |
 | 8 | Phát hành: icon, splash, ký APK/AAB, đưa lên Google Play (và App Store nếu có Mac) | ⏳ |

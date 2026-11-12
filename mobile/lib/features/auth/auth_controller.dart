@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api_client.dart';
 import '../../models/user.dart';
@@ -29,12 +30,59 @@ class AuthController extends AsyncNotifier<User?> {
     }
   }
 
-  Future<void> login(String email, String password) async {
+  /// [remember] = "Ghi nhớ đăng nhập": bật → lưu token (mở lại app vẫn vào thẳng) và nhớ email để tự điền;
+  /// tắt → token chỉ giữ trong bộ nhớ, tắt hẳn app là phải đăng nhập lại (hợp với máy dùng chung).
+  Future<void> login(String email, String password, {bool remember = true}) async {
     final json = await _api.post<Map<String, dynamic>>('/login', {'email': email.trim(), 'password': password});
+    await LoginPrefs.save(email: remember ? email.trim() : null, remember: remember);
+    await signInWith(json, persist: remember);
+  }
+
+  /// Xác minh mã đăng ký → nhận token và vào app luôn.
+  Future<void> verifyEmail(String email, String code) async {
+    final json = await _api.post<Map<String, dynamic>>('/verify-email', {'email': email, 'code': code});
+    await signInWith(json);
+  }
+
+  /// Lưu phiên từ một phản hồi có {token, user} (đăng nhập, xác minh email, nhận lời mời).
+  Future<void> signInWith(Map<String, dynamic> json, {bool persist = true}) async {
     final token = json['token'] as String;
     _api.token = token;
-    await _storage.write(token);
+    if (persist) {
+      await _storage.write(token);
+    } else {
+      await _storage.clear();
+    }
     state = AsyncData(User.fromJson(json['user'] as Map<String, dynamic>));
+  }
+
+  // ----- Tài khoản -----
+
+  Future<void> updateName(String name) async {
+    final json = await _api.put<Map<String, dynamic>>('/account', {'name': name});
+    state = AsyncData(User.fromJson(json['user'] as Map<String, dynamic>));
+  }
+
+  /// Bật/tắt email nhắc hạn (lạc quan).
+  Future<void> setDeadlineReminders(bool enabled) async {
+    final previous = state.valueOrNull;
+    if (previous != null) state = AsyncData(previous.copyWith(emailDeadlineReminders: enabled));
+    try {
+      await _api.put('/account/settings', {'email_deadline_reminders': enabled});
+    } catch (e) {
+      if (previous != null) state = AsyncData(previous);
+      rethrow;
+    }
+  }
+
+  /// Trả về thông báo của server (vd. "Đổi mật khẩu thành công").
+  Future<String> changePassword(String current, String next) async {
+    final json = await _api.put<Map<String, dynamic>>('/account/password', {
+      'current_password': current,
+      'password': next,
+      'password_confirmation': next,
+    });
+    return (json['message'] as String?) ?? 'Đã đổi mật khẩu';
   }
 
   Future<void> logout() async {
@@ -60,3 +108,25 @@ class AuthController extends AsyncNotifier<User?> {
 }
 
 final authProvider = AsyncNotifierProvider<AuthController, User?>(AuthController.new);
+
+/// Lựa chọn "Ghi nhớ đăng nhập" và email đã nhớ (không phải bí mật → SharedPreferences).
+/// Mật khẩu KHÔNG bao giờ lưu trong app — để trình quản lý mật khẩu của hệ điều hành lo (autofill).
+class LoginPrefs {
+  static const _rememberKey = 'login_remember';
+  static const _emailKey = 'login_email';
+
+  static Future<({bool remember, String email})> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (remember: prefs.getBool(_rememberKey) ?? true, email: prefs.getString(_emailKey) ?? '');
+  }
+
+  static Future<void> save({required String? email, required bool remember}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_rememberKey, remember);
+    if (email == null || email.isEmpty) {
+      await prefs.remove(_emailKey);
+    } else {
+      await prefs.setString(_emailKey, email);
+    }
+  }
+}
