@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+# Cache của `tsc -b`, sinh lại mỗi lần build
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*
