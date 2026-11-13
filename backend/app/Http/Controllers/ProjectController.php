@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\ProjectInvitation;
 use App\Mail\ProjectInvitationMail;
+use App\Mail\ProjectMemberAddedMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -224,7 +225,20 @@ class ProjectController extends Controller
             $project->users()->attach($user->id, ['role' => 'member']);
             Activity::record('member_added', $project, null, ['member_id' => $user->id, 'member_name' => $user->name]);
 
-            return response()->json(['status' => 'added', 'message' => "Đã thêm {$user->name} vào dự án"]);
+            // Báo cho người được thêm (giống Trello). Gửi lỗi thì vẫn giữ thành viên, chỉ ghi log.
+            $mailSent = true;
+            try {
+                Mail::to($user->email)->send(new ProjectMemberAddedMail($project, $user, $currentUser));
+            } catch (\Throwable $e) {
+                $mailSent = false;
+                Log::warning('Không gửi được mail báo thêm vào dự án', ['email' => $user->email, 'error' => $e->getMessage()]);
+            }
+
+            return response()->json([
+                'status' => 'added',
+                'mail_sent' => $mailSent,
+                'message' => "Đã thêm {$user->name} vào dự án",
+            ]);
         }
 
         // Chưa có tài khoản → lời mời đang chờ (gửi lại nếu đã mời trước đó)
