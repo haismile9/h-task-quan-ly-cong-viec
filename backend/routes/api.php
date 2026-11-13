@@ -98,9 +98,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,leader')->get('/manage-projects', fn () => 'Chào quản lý!');
     // Route::middleware('role:member')->get('/my-tasks', fn () => 'Chào thành viên!');
 
-    // ⏰ Deadline
-    Route::get('/tasks/{taskId}/reminder', [TaskController::class, 'sendDeadlineReminder']);
-
     // 👤 User profile
     Route::get('/user', fn (Request $request) => $request->user());
     Route::get('/account', fn (Request $req) => $req->user());

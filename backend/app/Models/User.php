@@ -45,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'email_deadline_reminders' => 'boolean',
+            'email_project_added' => 'boolean',
         ];
     }
     public function projects()

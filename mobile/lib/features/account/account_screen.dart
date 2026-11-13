@@ -6,6 +6,7 @@ import '../../core/api_client.dart';
 import '../../core/env.dart';
 import '../../core/theme_mode.dart';
 import '../../models/dashboard.dart';
+import '../../models/user.dart';
 import '../../widgets/avatar.dart';
 import '../auth/auth_controller.dart';
 import '../my_tasks/my_tasks_repository.dart';
@@ -119,21 +120,28 @@ class AccountScreen extends ConsumerWidget {
               ),
               heading('Cài đặt'),
               card([
-                SwitchListTile(
-                  secondary: const Icon(Icons.mail_outline),
-                  title: const Text('Email nhắc việc sắp đến hạn'),
-                  subtitle: const Text('Gửi lúc 8:00 mỗi sáng'),
-                  value: user?.emailDeadlineReminders ?? true,
-                  onChanged: user == null
-                      ? null
-                      : (v) {
-                          final messenger = ScaffoldMessenger.of(context);
-                          ref.read(authProvider.notifier).setDeadlineReminders(v).catchError((Object e) {
-                            messenger.showSnackBar(SnackBar(content: Text(ApiException.from(e).message)));
-                          });
-                        },
-                ),
-                const Divider(height: 1),
+                for (final (setting, icon, title, subtitle) in const [
+                  (EmailSetting.deadlineReminders, Icons.mail_outline, 'Email khi thẻ của tôi sắp đến hạn',
+                      'Gửi lúc 8:00 sáng'),
+                  (EmailSetting.projectAdded, Icons.group_add_outlined, 'Email khi có người thêm tôi vào bảng',
+                      'Kèm đường dẫn mở bảng'),
+                ]) ...[
+                  SwitchListTile(
+                    secondary: Icon(icon),
+                    title: Text(title),
+                    subtitle: Text(subtitle),
+                    value: user?.emailSetting(setting) ?? true,
+                    onChanged: user == null
+                        ? null
+                        : (v) {
+                            final messenger = ScaffoldMessenger.of(context);
+                            ref.read(authProvider.notifier).setEmailSetting(setting, v).catchError((Object e) {
+                              messenger.showSnackBar(SnackBar(content: Text(ApiException.from(e).message)));
+                            });
+                          },
+                  ),
+                  const Divider(height: 1),
+                ],
                 ListTile(
                   leading: const Icon(Icons.dark_mode_outlined),
                   title: const Text('Giao diện'),

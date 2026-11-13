@@ -66,4 +66,17 @@ void main() {
         .emailDeadlineReminders, isTrue);
     expect(User.fromJson({'id': 1, 'name': 'A', 'email': 'a@b.c'}).emailDeadlineReminders, isTrue);
   });
+
+  test('User đọc và đổi cài đặt email khi được thêm vào dự án', () {
+    final off = User.fromJson({'id': 1, 'name': 'A', 'email': 'a@b.c', 'email_project_added': false});
+    expect(off.emailProjectAdded, isFalse);
+    expect(off.emailDeadlineReminders, isTrue, reason: 'hai công tắc độc lập');
+    expect(User.fromJson({'id': 1, 'name': 'A', 'email': 'a@b.c'}).emailProjectAdded, isTrue);
+
+    final on = off.withEmailSetting(EmailSetting.projectAdded, true);
+    expect(on.emailSetting(EmailSetting.projectAdded), isTrue);
+    expect(on.withEmailSetting(EmailSetting.deadlineReminders, false).emailSetting(EmailSetting.deadlineReminders),
+        isFalse);
+    expect(EmailSetting.projectAdded.key, 'email_project_added');
+  });
 }

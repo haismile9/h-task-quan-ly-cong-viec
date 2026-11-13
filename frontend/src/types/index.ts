@@ -9,6 +9,8 @@ export interface User {
   role: Role;
   /** Cài đặt: nhận email nhắc hạn chót. */
   email_deadline_reminders?: boolean;
+  /** Cài đặt: nhận email khi được thêm vào dự án. */
+  email_project_added?: boolean;
   email_verified_at?: string | null;
   created_at?: string;
   updated_at?: string;

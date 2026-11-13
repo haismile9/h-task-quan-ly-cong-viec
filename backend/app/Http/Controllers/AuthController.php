@@ -141,14 +141,24 @@ class AuthController extends Controller
         return response()->json(['message' => 'Đã đổi mật khẩu']);
     }
 
-    /** Cài đặt cá nhân (hiện có: nhận email nhắc hạn chót). */
+    /**
+     * Cài đặt email thông báo. Gửi một hoặc cả hai trường:
+     * email_deadline_reminders (nhắc hạn chót), email_project_added (được thêm vào dự án).
+     * Mã xác minh và lời mời khi chưa có tài khoản luôn được gửi, không tắt được.
+     */
     public function updateSettings(Request $request)
     {
-        $data = $request->validate(['email_deadline_reminders' => 'required|boolean']);
+        $data = $request->validate([
+            'email_deadline_reminders' => 'sometimes|boolean',
+            'email_project_added' => 'sometimes|boolean',
+        ]);
+        if (!$data) {
+            return response()->json(['message' => 'Không có cài đặt nào để lưu'], 422);
+        }
         $user = $request->user();
         $user->forceFill($data)->save();
 
-        return response()->json(['message' => 'Đã lưu cài đặt', 'user' => $user]);
+        return response()->json(['message' => 'Đã lưu cài đặt', 'user' => $user->fresh()]);
     }
 
     public function updateProfile(Request $request)

@@ -57,12 +57,12 @@ class AuthController extends AsyncNotifier<User?> {
     state = AsyncData(User.fromJson(json['user'] as Map<String, dynamic>));
   }
 
-  /// Bật/tắt email nhắc hạn (lạc quan).
-  Future<void> setDeadlineReminders(bool enabled) async {
+  /// Bật/tắt một loại email thông báo (lạc quan, lỗi thì hoàn tác).
+  Future<void> setEmailSetting(EmailSetting setting, bool enabled) async {
     final previous = state.valueOrNull;
-    if (previous != null) state = AsyncData(previous.copyWith(emailDeadlineReminders: enabled));
+    if (previous != null) state = AsyncData(previous.withEmailSetting(setting, enabled));
     try {
-      await _api.put('/account/settings', {'email_deadline_reminders': enabled});
+      await _api.put('/account/settings', {setting.key: enabled});
     } catch (e) {
       if (previous != null) state = AsyncData(previous);
       rethrow;

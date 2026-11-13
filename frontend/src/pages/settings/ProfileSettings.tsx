@@ -1,37 +1,18 @@
-import { useState, type FormEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { authApi } from "../../api/auth";
-import { getErrorMessage } from "../../api/client";
+import { useState } from "react";
+import { AiOutlineEdit } from "react-icons/ai";
 import { useAuth } from "../../context/AuthContext";
 import Avatar from "../../components/ui/Avatar";
-import FormField from "../../components/ui/FormField";
-import { useToast } from "../../components/ui/Toast";
 import { roleLabel } from "../../layout/AccountMenu";
 import ChangePasswordModal from "../../components/account/ChangePasswordModal";
+import EditProfileModal from "../../components/account/EditProfileModal";
 
-/** Hồ sơ: thông tin cá nhân + đổi mật khẩu. */
+/** Hồ sơ: thẻ thông tin (sửa họ tên qua modal) + đổi mật khẩu. */
 const ProfileSettings = () => {
-  const { user, setUser } = useAuth();
-  const toast = useToast();
-  const [name, setName] = useState(user?.name ?? "");
+  const { user } = useAuth();
+  const [showEdit, setShowEdit] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const updateProfile = useMutation({
-    mutationFn: () => authApi.updateProfile({ name: name.trim() }),
-    onSuccess: (u) => {
-      setUser(u);
-      toast.success("Đã cập nhật hồ sơ");
-    },
-  });
-
-
   if (!user) return null;
-
-  const submitProfile = (e: FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate();
-  };
-
 
   return (
     <>
@@ -42,29 +23,18 @@ const ProfileSettings = () => {
         <div className="h-20 bg-board" />
         <div className="px-6 pb-6 -mt-10 flex flex-wrap items-end gap-4">
           <Avatar name={user.name} size="md" className="!w-24 !h-24 !text-3xl ring-4 ring-base-100" />
-          <div className="pb-1">
-            <p className="text-xl font-bold">{user.name}</p>
-            <p className="text-sm text-base-content/60">{user.email}</p>
+          <div className="pb-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-xl font-bold truncate">{user.name}</p>
+              <span className="badge badge-primary badge-soft badge-sm">{roleLabel[user.role] ?? user.role}</span>
+            </div>
+            <p className="text-sm text-base-content/60 truncate">{user.email}</p>
           </div>
-          <span className="badge badge-primary badge-soft ml-auto mb-2">{roleLabel[user.role] ?? user.role}</span>
+          <button className="btn btn-outline btn-sm ml-auto mb-1" onClick={() => setShowEdit(true)}>
+            <AiOutlineEdit /> Sửa hồ sơ
+          </button>
         </div>
       </div>
-
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold border-b border-base-300 pb-2 mb-4">Thông tin cá nhân</h2>
-        <form onSubmit={submitProfile} className="space-y-4 max-w-md">
-          <FormField label="Họ tên" value={name} onChange={(e) => setName(e.target.value)} />
-          <FormField label="Email" value={user.email} disabled />
-          {updateProfile.isError && <p className="text-error text-sm">{getErrorMessage(updateProfile.error)}</p>}
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={!name.trim() || name.trim() === user.name || updateProfile.isPending}
-          >
-            Lưu thay đổi
-          </button>
-        </form>
-      </section>
 
       <section className="mb-10">
         <h2 className="text-lg font-semibold border-b border-base-300 pb-2 mb-4">Bảo mật</h2>
@@ -87,6 +57,7 @@ const ProfileSettings = () => {
           <li>Hoạt động của bạn chỉ hiển thị với thành viên của dự án nơi hoạt động diễn ra.</li>
         </ul>
       </section>
+      {showEdit && <EditProfileModal onClose={() => setShowEdit(false)} />}
       {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
     </>
   );

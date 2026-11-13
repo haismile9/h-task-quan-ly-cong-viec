@@ -225,13 +225,16 @@ class ProjectController extends Controller
             $project->users()->attach($user->id, ['role' => 'member']);
             Activity::record('member_added', $project, null, ['member_id' => $user->id, 'member_name' => $user->name]);
 
-            // Báo cho người được thêm (giống Trello). Gửi lỗi thì vẫn giữ thành viên, chỉ ghi log.
-            $mailSent = true;
-            try {
-                Mail::to($user->email)->send(new ProjectMemberAddedMail($project, $user, $currentUser));
-            } catch (\Throwable $e) {
-                $mailSent = false;
-                Log::warning('Không gửi được mail báo thêm vào dự án', ['email' => $user->email, 'error' => $e->getMessage()]);
+            // Báo cho người được thêm (giống Trello), trừ khi họ đã tắt trong Cài đặt.
+            // Gửi lỗi thì vẫn giữ thành viên, chỉ ghi log.
+            $mailSent = false;
+            if ($user->email_project_added !== false) {
+                try {
+                    Mail::to($user->email)->send(new ProjectMemberAddedMail($project, $user, $currentUser));
+                    $mailSent = true;
+                } catch (\Throwable $e) {
+                    Log::warning('Không gửi được mail báo thêm vào dự án', ['email' => $user->email, 'error' => $e->getMessage()]);
+                }
             }
 
             return response()->json([

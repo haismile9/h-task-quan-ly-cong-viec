@@ -4,22 +4,48 @@ import { getErrorMessage } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/ui/Toast";
 
+type EmailSetting = "email_deadline_reminders" | "email_project_added";
+
+/** Các email thông báo người dùng được bật/tắt. Mã xác minh luôn gửi nên không có ở đây. */
+const EMAIL_SETTINGS: { key: EmailSetting; label: string; hint: string }[] = [
+  {
+    key: "email_deadline_reminders",
+    label: "Thẻ của tôi sắp đến hạn",
+    hint: "Thẻ được giao cho bạn đến hạn hôm nay hoặc ngày mai mà chưa hoàn thành. Gửi lúc 8:00 sáng.",
+  },
+  {
+    key: "email_project_added",
+    label: "Có người thêm tôi vào dự án",
+    hint: "Email kèm đường dẫn mở dự án đó.",
+  },
+];
+
 /** Trang "Cài đặt": ngôn ngữ, thông báo bằng email, phiên đăng nhập. */
 const GeneralSettings = () => {
   const { user, setUser, logout } = useAuth();
   const toast = useToast();
 
+  // Lạc quan: công tắc đổi ngay khi bấm, lỗi thì trả lại giá trị cũ.
   const saveSettings = useMutation({
-    mutationFn: (enabled: boolean) => authApi.updateSettings({ email_deadline_reminders: enabled }),
+    mutationFn: ({ key, value }: { key: EmailSetting; value: boolean }) => authApi.updateSettings({ [key]: value }),
+    onMutate: ({ key, value }) => {
+      const previous = user;
+      if (user) setUser({ ...user, [key]: value });
+      return { previous };
+    },
     onSuccess: (u) => {
       setUser(u);
       toast.success("Đã lưu cài đặt");
     },
-    onError: (err) => toast.error(getErrorMessage(err, "Không lưu được cài đặt.")),
+    onError: (err, _vars, ctx) => {
+      if (ctx?.previous) setUser(ctx.previous);
+      toast.error(getErrorMessage(err, "Không lưu được cài đặt."));
+    },
   });
 
   if (!user) return null;
-  const remindersOn = user.email_deadline_reminders !== false;
+  // Chỉ khoá công tắc đang lưu, công tắc còn lại vẫn bấm được
+  const savingKey = saveSettings.isPending ? saveSettings.variables?.key : undefined;
 
   return (
     <>
@@ -36,24 +62,27 @@ const GeneralSettings = () => {
 
       <section className="mb-10">
         <h2 className="text-xl font-semibold mb-3">Thông báo bằng email</h2>
-        <p className="text-sm text-base-content/70 mb-4">
-          Bạn luôn nhận email về lời mời tham gia dự án và mã xác minh. Các thông báo khác có thể bật hoặc tắt bên dưới.
+        <p className="text-sm text-base-content/70 mb-1">
+          Email chứa mã xác minh (đăng ký, quên mật khẩu) luôn được gửi để bảo vệ tài khoản.
         </p>
-        <label className="flex items-start gap-3 cursor-pointer max-w-xl">
-          <input
-            type="checkbox"
-            className="toggle toggle-primary mt-0.5"
-            checked={remindersOn}
-            disabled={saveSettings.isPending}
-            onChange={(e) => saveSettings.mutate(e.target.checked)}
-          />
-          <span>
-            <span className="font-medium">Nhắc hạn chót</span>
-            <span className="block text-sm text-base-content/60">
-              Gửi email khi thẻ bạn được giao sắp đến hạn (hôm nay hoặc ngày mai) mà chưa hoàn thành.
-            </span>
-          </span>
-        </label>
+        <p className="text-sm font-semibold mt-4 mb-3">Gửi email cho tôi khi:</p>
+        <div className="space-y-5">
+          {EMAIL_SETTINGS.map((s) => (
+            <label key={s.key} className="flex items-start gap-3 cursor-pointer max-w-xl">
+              <input
+                type="checkbox"
+                className="toggle toggle-primary mt-0.5"
+                checked={user[s.key] !== false}
+                disabled={savingKey === s.key}
+                onChange={(e) => saveSettings.mutate({ key: s.key, value: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">{s.label}</span>
+                <span className="block text-sm text-base-content/60">{s.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
       </section>
 
       <section>

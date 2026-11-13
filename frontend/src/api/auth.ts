@@ -45,7 +45,7 @@ export const authApi = {
   changePassword: (input: { current_password: string; password: string; password_confirmation: string }) =>
     client.put<{ message: string }>("/account/password", input).then((r) => r.data),
 
-  updateSettings: (input: { email_deadline_reminders: boolean }) =>
+  updateSettings: (input: { email_deadline_reminders?: boolean; email_project_added?: boolean }) =>
     client.put<{ message: string; user: User }>("/account/settings", input).then((r) => r.data.user),
 
   updateProfile: (input: { name: string }) =>
